@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Aug 06, 2026 at 12:34 PM
+-- Generation Time: Aug 10, 2026 at 12:50 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -70,7 +70,8 @@ INSERT INTO `announcements` (`id`, `title`, `content`, `priority`, `scheduleDate
 (5, 'birthday', 'happy birthday', 'Normal', '2026-08-02', 'Sales', 'ss', '[\"Created on 7/14/2026\"]', 1, '2026-07-14 08:26:59', '2026-07-14 08:26:59'),
 (6, 'jjj', 'jjj', 'Medium', '2026-08-06', 'All', 'pdf', '[\"Created on 8/6/2026\"]', 1, '2026-08-06 06:00:02', '2026-08-06 06:00:02'),
 (7, 'hh', 'hhh', 'Medium', '2026-08-06', 'All', 'hh', '[\"Created on 8/6/2026\"]', 1, '2026-08-06 06:00:58', '2026-08-06 06:00:58'),
-(8, 'nnn', 'nnn', 'Medium', '2026-08-06', 'IT', 'pdf', '[\"Created on 8/6/2026\"]', 1, '2026-08-06 06:01:29', '2026-08-06 06:01:29');
+(8, 'nnn', 'nnn', 'Medium', '2026-08-06', 'IT', 'pdf', '[\"Created on 8/6/2026\"]', 1, '2026-08-06 06:01:29', '2026-08-06 06:01:29'),
+(9, 'rfr', 'retf', 'Normal', '2026-08-07', 'All', 'ret', '[\"Created on 8/7/2026\"]', 1, '2026-08-07 05:57:12', '2026-08-07 05:57:12');
 
 -- --------------------------------------------------------
 
@@ -195,7 +196,9 @@ INSERT INTO `certificates` (`id`, `employee_id`, `recipient_name`, `recipient_em
 (21, 79, 'ambika', 'ruchitiwari5757@gmail.com', 4, '2026-07-28', NULL, 'sent', 'C:\\Users\\hhh\\OneDrive\\Desktop\\HR finnal\\backend1111\\backend91\\backend99\\backend96\\backend\\uploads\\certificate_1785232166427.pdf'),
 (22, 79, 'ambika', 'ruchitiwari5757@gmail.com', 6, '2026-07-28', NULL, 'sent', 'C:\\Users\\hhh\\OneDrive\\Desktop\\HR finnal\\backend1111\\backend91\\backend99\\backend96\\backend\\uploads\\certificate_1785232460892.pdf'),
 (23, 80, 'payal ', 'ambikamalviya511@gmail.com', 2, '2026-07-28', NULL, 'sent', 'C:\\Users\\hhh\\OneDrive\\Desktop\\HR finnal\\backend1111\\backend91\\backend99\\backend96\\backend\\uploads\\certificate_1785234979033.pdf'),
-(24, 79, 'ambika', 'ruchitiwari5757@gmail.com', 2, '2026-07-30', NULL, 'sent', 'C:\\Users\\hhh\\OneDrive\\Desktop\\HR finnal\\backend1111\\backend91\\backend99\\backend96\\backend\\uploads\\certificate_1785390691000.pdf');
+(24, 79, 'ambika', 'ruchitiwari5757@gmail.com', 2, '2026-07-30', NULL, 'sent', 'C:\\Users\\hhh\\OneDrive\\Desktop\\HR finnal\\backend1111\\backend91\\backend99\\backend96\\backend\\uploads\\certificate_1785390691000.pdf'),
+(25, 73, 'yashi', 'missg3734@gmail.com', 6, '2026-08-10', NULL, 'sent', 'C:\\Users\\Z\\Desktop\\NEW HR\\backend6\\backend\\uploads\\certificate_1786356392806.pdf'),
+(26, 83, 'teena', 'krishnamg019@gmail.com', 3, '2026-08-10', NULL, 'sent', 'C:\\Users\\Z\\Desktop\\NEW HR\\backend6\\backend\\uploads\\certificate_1786356678524.pdf');
 
 -- --------------------------------------------------------
 
@@ -242,7 +245,8 @@ CREATE TABLE `chat_groups` (
 
 INSERT INTO `chat_groups` (`id`, `room`, `name`, `members`, `created_by`, `created_at`) VALUES
 (1, 'group_as_group', 'AS Group', '[\"54\",\"56\",\"57\",\"58\",\"73\",\"admin\"]', 'admin', '2026-07-24 07:11:51'),
-(2, 'group_new', 'new', '[\"70\",\"76\",\"77\",\"63\",\"admin\"]', 'admin', '2026-07-25 10:57:49');
+(2, 'group_new', 'new', '[\"70\",\"76\",\"77\",\"63\",\"admin\"]', 'admin', '2026-07-25 10:57:49'),
+(3, 'group_as_group_digital_private_limited', 'AS Group Digital Private Limited', '[\"54\",\"82\",\"80\",\"79\",\"admin\"]', 'admin', '2026-08-07 05:58:53');
 
 -- --------------------------------------------------------
 
@@ -580,7 +584,10 @@ INSERT INTO `chat_messages` (`id`, `room`, `sender_id`, `sender_name`, `sender_r
 (313, 'group_new', '63', 'manu', 'employee', 'jiii', '2026-08-06 05:37:03'),
 (314, 'group_new', '63', 'manu', 'employee', 'yupppp', '2026-08-06 05:37:10'),
 (315, 'group_new', '63', 'manu', 'employee', 'yess', '2026-08-06 05:37:17'),
-(316, 'group_new', '63', 'manu', 'employee', 'kuch', '2026-08-06 05:37:31');
+(316, 'group_new', '63', 'manu', 'employee', 'kuch', '2026-08-06 05:37:31'),
+(317, 'chat_54_admin', 'admin', 'admin', 'admin', 'hlo', '2026-08-07 05:58:13'),
+(318, 'chat_[object Object]_admin', 'admin', 'admin', 'admin', 'hyy guys', '2026-08-07 05:59:07'),
+(319, 'chat_82_83', '83', 'teena', 'employee', 'hii', '2026-08-10 10:12:16');
 
 -- --------------------------------------------------------
 
@@ -614,7 +621,8 @@ INSERT INTO `emails` (`id`, `eventType`, `recipientGroup`, `subject`, `message`,
 (5, 'Welcome', 'All Employees', 'hyy', 'hyyy helloo candidates h r u', 'based on performace ', 'Sent', 1, '2026-08-01 09:26:50', '2026-08-01 09:26:50', '2026-08-01 09:26:50'),
 (6, 'Task Assignment', 'Managers', 'nnn', 'nnn', NULL, 'Sent', 1, '2026-08-06 05:51:10', '2026-08-06 05:51:10', '2026-08-06 05:51:10'),
 (7, 'Welcome', 'All Employees', 'jjj', 'jj', 'jj', 'Sent', 1, '2026-08-06 05:51:25', '2026-08-06 05:51:25', '2026-08-06 05:51:25'),
-(8, 'Leave Approval', 'HR Team', 'hheello', 'hello', 'h', 'Sent', 1, '2026-08-06 06:08:31', '2026-08-06 06:08:31', '2026-08-06 06:08:31');
+(8, 'Leave Approval', 'HR Team', 'hheello', 'hello', 'h', 'Sent', 1, '2026-08-06 06:08:31', '2026-08-06 06:08:31', '2026-08-06 06:08:31'),
+(9, 'Attendance Reminder', 'Managers', 'ert', 'erter', 'ert', 'Sent', 1, '2026-08-07 05:57:44', '2026-08-07 05:57:44', '2026-08-07 05:57:44');
 
 -- --------------------------------------------------------
 
@@ -661,7 +669,9 @@ INSERT INTO `employees` (`id`, `name`, `email`, `phone_number`, `password`, `dep
 (78, 'Muskan', 'mskntmrkr@gmail.com', '1234567890', 'Mus12@12', 'bank', 'Employee', 'lead', '2026-07-29', 'EMP-78', '/uploads/profiles/1785136123682-as_group_logo.jpeg', '/uploads/profiles/1785136123682-2snap.jpeg', '/uploads/profiles/1785136123682-2snap.jpeg', '2026-07-27 07:08:43', '2026-08-05 10:23:05', 'tl', '/uploads/profiles/1785136123681-2snap.jpeg', 'rashi', 0, '[\"dev\",\"skills (Advanced)\"]', 90000.00),
 (79, 'ambika', 'ruchitiwari5757@gmail.com', '1234567801', 'ruchi12@', 'TL', 'Employee', 'lead', '2026-07-30', 'EMP-79', '/uploads/profiles/1785221517146-hotel.jpeg', '/uploads/profiles/1785221517147-11.png', '/uploads/profiles/1785221517148-as_group_logo.jpeg', '2026-07-28 06:51:57', '2026-07-28 06:52:07', 'tl', '/uploads/profiles/1785221517146-snap.jpeg', 'rashi', 0, '[\"dev\"]', 40000.00),
 (80, 'payal ', 'ambikamalviya511@gmail.com', '9926482046', 'ambika@123', 'HR', 'Employee', 'senior', '2026-05-01', 'EMP-80', NULL, NULL, NULL, '2026-07-28 10:23:02', '2026-07-28 10:23:02', 'tl', '/uploads/profiles/1785234182278-2snap.jpeg', 'teena', 0, NULL, 10000.00),
-(81, 'Tanishka gupta', 'ambikamalviya78@gmail.com', '+919131466621', 'Office12@', 'DA', 'Employee', 'lead', '2026-08-01', 'EMP-81', NULL, NULL, NULL, '2026-07-30 05:45:42', '2026-07-30 05:45:42', 'employee', '/uploads/profiles/1785390342030-WhatsApp_Image_2026-01-06_at_23.18.07.jpeg', 'rashi', 0, NULL, 50000.00);
+(81, 'Tanishka gupta', 'ambikamalviya78@gmail.com', '+919131466621', 'Office12@', 'DA', 'Employee', 'lead', '2026-08-01', 'EMP-81', NULL, NULL, NULL, '2026-07-30 05:45:42', '2026-07-30 05:45:42', 'employee', '/uploads/profiles/1785390342030-WhatsApp_Image_2026-01-06_at_23.18.07.jpeg', 'rashi', 0, NULL, 50000.00),
+(82, 'Sheetal', 'sheetudalai147@gmail.com', '1234567846', 'sheetal12@', 'CEO', 'Employee', 'lead', '2026-09-01', 'EMP-82', '/uploads/profiles/1786080951613-Screenshot_2026-03-24_161832.png', '/uploads/profiles/1786080951618-Screenshot_2026-03-24_161832.png', '/uploads/profiles/1786080951622-Screenshot_2026-03-24_161832.png', '2026-08-07 05:35:51', '2026-08-07 05:36:07', 'tl', '/uploads/profiles/1786080951586-hospital.png', 'rashi', 0, '[\"ceo\"]', 90000.00),
+(83, 'teena', 'krishnamg019@gmail.com', '9131466621', 'tina12@12', 'CEO', 'Employee', 'lead', '2026-08-20', 'EMP-83', '/uploads/profiles/1786356521156-f.jpg', '/uploads/profiles/1786356521162-f.jpg', '/uploads/profiles/1786356521218-f.jpg', '2026-08-10 10:08:41', '2026-08-10 10:08:55', 'employee', '/uploads/profiles/1786356521150-Screenshot_2026-03-24_161832.png', 'software developer', 0, '[\"wer\"]', 20000.00);
 
 -- --------------------------------------------------------
 
@@ -756,7 +766,8 @@ INSERT INTO `kpis` (`id`, `employee`, `department`, `target`, `achieved`, `progr
 (7, 'niharikaa', 'IT', '100', '20', 10, 'pending', '2026-07-02 09:54:27'),
 (8, 'nehaa', 'it', '100', 'haa', 30, '10', '2026-07-02 09:56:26'),
 (9, 'John Doe', 'Sales', '10050', '50', 30, 'pending', '2026-07-02 09:57:24'),
-(10, 'nehaa', 'Admin', '100', '70', 30, '10', '2026-07-02 10:07:47');
+(10, 'nehaa', 'Admin', '100', '70', 30, '10', '2026-07-02 10:07:47'),
+(11, 'Sheetal', 'CEO', '30 days', '20%', 50, 'pending', '2026-08-07 05:49:38');
 
 -- --------------------------------------------------------
 
@@ -781,9 +792,10 @@ CREATE TABLE `leaves` (
 
 INSERT INTO `leaves` (`id`, `employee_id`, `employee_name`, `type`, `reason`, `date`, `status`, `created_at`) VALUES
 (26, 77, 'veer', 'Casual', 'hii', '2026-07-19', 'Approved', '2026-07-25 11:00:07'),
-(27, 80, 'payal ', 'Casual', 'njnj', '2026-08-04', 'Pending', '2026-07-28 10:43:58'),
+(27, 80, 'payal ', 'Casual', 'njnj', '2026-08-04', 'Approved', '2026-07-28 10:43:58'),
 (28, 81, 'Tanishka gupta', 'Sick', 'h', '2026-07-30', 'Rejected', '2026-07-30 11:42:53'),
-(29, 63, 'manu', 'Casual', 'hello', '2026-08-08', 'Pending', '2026-08-01 06:17:25');
+(29, 63, 'manu', 'Casual', 'hello', '2026-08-08', 'Pending', '2026-08-01 06:17:25'),
+(30, 83, 'teena', 'Casual', 'f', '2026-08-27', 'Pending', '2026-08-10 10:12:26');
 
 -- --------------------------------------------------------
 
@@ -810,7 +822,9 @@ CREATE TABLE `notices` (
 --
 
 INSERT INTO `notices` (`id`, `title`, `content`, `priority`, `expiry`, `department`, `attachment`, `pinned`, `created_by`, `created_at`, `updated_at`) VALUES
-(2, 'hello users', 'hello users', 'Medium', '2026-07-08', 'Finance', 'hello users', 1, 43, '2026-07-08 11:28:56', '2026-07-28 10:34:02');
+(2, 'hello users', 'hello users', 'Medium', '2026-07-08', 'Finance', 'hello users', 1, 43, '2026-07-08 11:28:56', '2026-07-28 10:34:02'),
+(7, 'farewell', 'hr', 'High', '2026-08-07', 'All', 'fgf', 0, 1, '2026-08-07 05:56:42', '2026-08-07 05:56:42'),
+(8, 'w4er', 'we4r', 'Medium', '2026-08-24', 'All', 'rwe', 0, 1, '2026-08-10 10:10:16', '2026-08-10 10:10:16');
 
 -- --------------------------------------------------------
 
@@ -863,7 +877,9 @@ INSERT INTO `payroll` (`id`, `employee_name`, `basic_salary`, `house_rent`, `med
 (23, 'yashi', 90000.00, 1000.00, 1000.00, 1000.00, 1000.00, 995.00, 1000.00, 1995.00, 94995.00, 80302.50, '2026-07-27 07:10:02', 'Generated', 'June 2026', NULL, 10800.00, 697.50, 200.00),
 (24, 'ambika', 40000.00, 1000.00, 111.00, 111.00, 1100.00, 111.00, 1000.00, 2999.00, 42433.00, 33124.84, '2026-07-28 06:52:47', 'Generated', 'June 2026', NULL, 4800.00, 309.16, 200.00),
 (25, 'payal ', 10000.00, 8000.00, 1000.00, 4000.00, 5000.00, 1000.00, 0.00, 399.00, 29000.00, 27028.50, '2026-07-28 10:28:35', 'Generated', 'June 2026', NULL, 1200.00, 172.50, 200.00),
-(26, 'Tanishka gupta', 20000.00, 10000.00, 1000.00, 1000.00, 1000.00, 1000.00, 0.00, 1999.00, 34000.00, 29161.00, '2026-07-30 05:46:32', 'Generated', 'June 2026', NULL, 2400.00, 240.00, 200.00);
+(26, 'Tanishka gupta', 20000.00, 10000.00, 1000.00, 1000.00, 1000.00, 1000.00, 0.00, 1999.00, 34000.00, 29161.00, '2026-07-30 05:46:32', 'Generated', 'June 2026', NULL, 2400.00, 240.00, 200.00),
+(27, 'Sheetal', 90000.00, 1000.00, 1000.00, 1000.00, 1000.00, 1000.00, 0.00, 1000.00, 95000.00, 82302.50, '2026-08-07 05:37:13', 'Generated', 'June 2026', NULL, 10800.00, 697.50, 200.00),
+(28, 'teena', 20000.00, 0.00, 0.00, 0.00, 0.00, 0.00, 0.00, -4.00, 20000.00, 17254.00, '2026-08-10 10:09:14', 'Generated', 'June 2026', NULL, 2400.00, 150.00, 200.00);
 
 -- --------------------------------------------------------
 
@@ -915,7 +931,9 @@ INSERT INTO `performance_reviews` (`id`, `employee_id`, `reviewer_id`, `rating`,
 (9, 76, 1, 9.99, 'Employee | jjj', '2026-08-06', 'TL', '2026-08-06 05:42:01'),
 (10, 73, 73, 4.00, NULL, '2026-08-06', 'yes', '2026-08-06 05:55:28'),
 (11, 73, 73, 1.00, NULL, '2026-08-06', 'yes', '2026-08-06 05:56:33'),
-(12, 79, 79, 5.00, NULL, '2026-08-06', 'TL', '2026-08-06 05:57:48');
+(12, 79, 79, 5.00, NULL, '2026-08-06', 'TL', '2026-08-06 05:57:48'),
+(13, 82, 79, 8.00, NULL, '2026-09-04', 'CEO', '2026-08-07 05:52:59'),
+(14, 82, 1, 9.99, 'Employee | HR', '2026-08-07', 'CEO', '2026-08-07 05:55:19');
 
 -- --------------------------------------------------------
 
@@ -965,7 +983,8 @@ INSERT INTO `projects` (`id`, `title`, `description`, `created_at`) VALUES
 (28, 'jjjj', '', '2026-08-05 11:05:04'),
 (29, 'hello', '', '2026-08-06 05:01:42'),
 (30, 'clent1', '', '2026-08-06 05:34:46'),
-(31, 'client', '', '2026-08-06 05:45:10');
+(31, 'client', '', '2026-08-06 05:45:10'),
+(32, '2q3w', '', '2026-08-10 10:10:32');
 
 -- --------------------------------------------------------
 
@@ -1004,8 +1023,9 @@ INSERT INTO `tasks` (`id`, `title`, `description`, `project_id`, `status`, `task
 (68, 'fjjf', 'hello users', 28, 'Pending', '2026-07-29', 2, 10, 'High', 'jjjj', '2026-08-05 11:05:04', NULL, NULL, NULL, NULL, 63),
 (69, 'jjj', 'hello hello ', 2, 'Completed', '2026-08-06', 2, 10, 'High', 'jj', '2026-08-06 04:59:44', NULL, NULL, NULL, NULL, 63),
 (70, 'hello', 'hello', 29, 'Completed', '2026-08-06', 3, 15, 'High', 'hello', '2026-08-06 05:01:42', NULL, NULL, NULL, NULL, 63),
-(71, '04/05/2026', 'jj', 30, 'Completed', '2026-08-06', 2, 10, 'High', 'clent1', '2026-08-06 05:34:46', NULL, NULL, NULL, NULL, 63),
-(72, 'nnn', 'jj', 31, 'Completed', '2026-08-06', 5, 10, 'High', 'client', '2026-08-06 05:45:10', NULL, NULL, NULL, NULL, 78);
+(73, 'Start', 'Start', 18, 'Pending', '2026-08-07', 1, 1, 'Normal', 'Tanishka', '2026-08-07 06:00:05', NULL, NULL, NULL, NULL, 82),
+(74, 'q32e', '', 32, 'Pending', '2026-08-10', 0, 0, 'Normal', '2q3w', '2026-08-10 10:10:32', NULL, NULL, NULL, NULL, 83),
+(75, 'was', 'asd', 9, 'Pending', '2026-08-10', 0, 0, 'Normal', 'rashi', '2026-08-10 10:11:59', NULL, NULL, NULL, NULL, 83);
 
 --
 -- Indexes for dumped tables
@@ -1140,7 +1160,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `announcements`
 --
 ALTER TABLE `announcements`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `attendance`
@@ -1152,7 +1172,7 @@ ALTER TABLE `attendance`
 -- AUTO_INCREMENT for table `certificates`
 --
 ALTER TABLE `certificates`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=25;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- AUTO_INCREMENT for table `certificate_types`
@@ -1164,25 +1184,25 @@ ALTER TABLE `certificate_types`
 -- AUTO_INCREMENT for table `chat_groups`
 --
 ALTER TABLE `chat_groups`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `chat_messages`
 --
 ALTER TABLE `chat_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=317;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=320;
 
 --
 -- AUTO_INCREMENT for table `emails`
 --
 ALTER TABLE `emails`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `employees`
 --
 ALTER TABLE `employees`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=82;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=84;
 
 --
 -- AUTO_INCREMENT for table `hiring`
@@ -1194,25 +1214,25 @@ ALTER TABLE `hiring`
 -- AUTO_INCREMENT for table `kpis`
 --
 ALTER TABLE `kpis`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `leaves`
 --
 ALTER TABLE `leaves`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=31;
 
 --
 -- AUTO_INCREMENT for table `notices`
 --
 ALTER TABLE `notices`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `payroll`
 --
 ALTER TABLE `payroll`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `payslip`
@@ -1224,19 +1244,19 @@ ALTER TABLE `payslip`
 -- AUTO_INCREMENT for table `performance_reviews`
 --
 ALTER TABLE `performance_reviews`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
 
 --
 -- AUTO_INCREMENT for table `projects`
 --
 ALTER TABLE `projects`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=33;
 
 --
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=73;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- Constraints for dumped tables
