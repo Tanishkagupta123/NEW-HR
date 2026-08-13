@@ -1,1 +1,9 @@
 *.zip
+node_modules/
+**/node_modules/
+**/uploads/*.pdf
+**/uploads/profiles/*
+**/uploads/employee-documents/*
+dist/
+**/dist/
+.DS_Store

@@ -1,0 +1,117 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #0f172a;
+  background-color: #f8fafc;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Print-specific rules to improve PDF output formatting. These only apply when printing/PDFing. */
+@media print {
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide interactive or layout elements that break print flow */
+  aside, nav, .no-print, button, input, textarea, select { display: none !important; }
+
+  /* Turn fixed/sticky elements static to avoid overlaying content */
+  .fixed, .sticky, header, footer { position: static !important; }
+
+  /* Ensure main content uses full width on printed pages */
+  main {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    overflow: visible !important;
+  }
+
+  /* Make backgrounds printable but avoid heavy dark blocks that overlap text */
+  .bg-black, .bg-slate-900, .bg-violet-950, .bg-slate-50 { background: transparent !important; color: #000 !important; }
+
+  /* Avoid clipped/hidden content and allow page breaks */
+  * { overflow: visible !important; box-shadow: none !important; }
+  h1,h2,h3,h4,h5,h6, p, div, section, article { orphans: 3; widows: 3; page-break-inside: avoid; }
+
+  /* Tables: avoid breaking rows across pages */
+  table { page-break-inside: auto; border-collapse: collapse; }
+  tr { page-break-inside: avoid; page-break-after: auto; }
+  th, td { border: 1px solid #000; }
+
+  /* Images and svgs should scale to width */
+  img, svg { max-width: 100% !important; height: auto !important; }
+
+  /* Remove UI elements from print and ensure readable font size */
+  .flex, .grid { display: block !important; }
+  body { font-size: 12pt !important; }
+}
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+  background: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+img,
+svg,
+video {
+  max-width: 100%;
+  display: block;
+}
+
+/* Keep every existing screen usable on phones without changing its content. */
+@media (max-width: 767px) {
+  main,
+  main > * {
+    min-width: 0;
+  }
+
+  main .flex > * {
+    min-width: 0;
+  }
+
+  main :has(> table) {
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  main table {
+    font-size: 0.875rem;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 479px) {
+  main .grid-cols-2,
+  main .grid-cols-3,
+  main .grid-cols-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

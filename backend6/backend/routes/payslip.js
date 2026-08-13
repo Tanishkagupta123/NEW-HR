@@ -1,0 +1,30 @@
+const express = require('express');
+const router = express.Router();
+const db = require('../configer/db'); // Aapka database connection
+
+// 1. Save Payroll
+router.post('/save', (req, res) => {
+    // PF, ESI, TAX, aur EMAIL yahan add kiye hain
+    const { employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax, email } = req.body;
+    
+    // SQL query mein EMAIL column add kiya hai
+    const sql = "INSERT INTO payroll (employee_name, basic_salary, house_rent, medical, travel, overtime, bonus, leave_deduction, other_deduction, gross_salary, net_salary, pf, esi, tax, email) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    
+    db.query(sql, [employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax, email], (err, result) => {
+        if(err) {
+            console.error(err);
+            return res.status(500).json(err);
+        }
+        return res.json({ message: "Payroll Saved!" });
+    });
+});
+
+// 2. Get All Payroll Records
+router.get('/all', (req, res) => {
+    db.query("SELECT * FROM payroll", (err, results) => {
+        if(err) return res.status(500).json(err);
+        return res.json(results);
+    });
+});
+
+module.exports = router;
