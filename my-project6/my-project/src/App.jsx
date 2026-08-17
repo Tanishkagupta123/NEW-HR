@@ -88,8 +88,12 @@ function ProtectedRoute({ allowedRole }) {
     return <Navigate to="/" replace state={{ from: location }} />;
   }
 
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace />;
+  if (allowedRole === 'admin' && user.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (allowedRole === 'employee' && user.role === 'admin') {
+    return <Navigate to="/admin" replace />;
   }
 
   return <Outlet />;
@@ -99,9 +103,12 @@ function ProtectedRoute({ allowedRole }) {
 
 
 
+import GlobalPopup from './components/GlobalPopup';
+
 export default function App() {
   return (
     <BrowserRouter>
+      <GlobalPopup />
       <Routes>
         {/* Public Route */}
         <Route path="/" element={<Login />} />

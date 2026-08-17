@@ -74,7 +74,7 @@ export default function AddEmployee() {
           <Input label="Full Name" placeholder="Enter Your Name" value={employee.name || ''} onChange={(v) => updateField('name', v)} error={errors.name} />
           <Input label="Email Address" type="email" placeholder="email@asgroup.com" value={employee.email || ''} onChange={(v) => updateField('email', v)} error={errors.email} />
           <Input label="Phone Number" placeholder="+91 00000 00000" value={employee.phone || ''} onChange={(v) => updateField('phone', v)} error={errors.phone} />
-          <Input label="Password" type="password" placeholder="Enter password" value={employee.password || ''} onChange={(v) => updateField('password', v)} error={errors.password} />
+          <PasswordInput label="Password" placeholder="Enter password" value={employee.password || ''} onChange={(v) => updateField('password', v)} error={errors.password} />
           <Input label="Joining Date" type="date" value={employee.joining_date || ''} onChange={(v) => updateField('joining_date', v)} error={errors.joining_date} />
         </div>
       </div>
@@ -108,10 +108,7 @@ export default function AddEmployee() {
             <select className={`p-4 bg-slate-50 border-2 rounded-2xl outline-none focus:border-violet-500 transition ${errors.role ? 'border-red-400' : 'border-slate-100'}`} value={employee.role || ''} onChange={(e) => updateField('role', e.target.value)}>
               <option value="" disabled>Select Role</option>
               <option value="employee">Employee</option>
-              {/* <option value="admin">Admin</option> */}
-              {/* <option value="manager">Manager</option> */}
               <option value="tl">TL</option>
-              {/* <option value="hr">HR</option> */}
             </select>
             {errors.role && <p className="text-red-500 text-[10px] mt-1">{errors.role}</p>}
           </div>
@@ -159,6 +156,42 @@ export default function AddEmployee() {
         </button>
       </div>
 
+    </div>
+  );
+}
+
+function PasswordInput({ label, value, onChange, placeholder, error }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex flex-col">
+      <label className="block text-[10px] font-bold text-slate-400 mb-3 uppercase tracking-wider">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? "text" : "password"}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full p-4 pr-12 bg-slate-50 border-2 rounded-2xl outline-none focus:border-violet-500 transition ${error ? 'border-red-400' : 'border-slate-100'}`}
+        />
+        <button
+          type="button"
+          onClick={() => setShow(!show)}
+          className="absolute right-4 top-4.5 text-slate-400 hover:text-violet-600 transition"
+          title={show ? "Hide password" : "Show password"}
+        >
+          {show ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 014.122-.963c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21m-6-6L3 3" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          )}
+        </button>
+      </div>
+      {error && <p className="text-red-500 text-[10px] mt-1">{error}</p>}
     </div>
   );
 }

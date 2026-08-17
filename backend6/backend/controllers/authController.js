@@ -1,5 +1,6 @@
 const db = require('../configer/db');
 const jwt = require('../utils/jwt');
+const bcrypt = require('bcrypt');
 
 exports.register = (req, res) => {
     const { name, password } = req.body || {};
@@ -13,21 +14,25 @@ exports.register = (req, res) => {
 };
 
 exports.login = (req, res) => {
-    const { name, password } = req.body || {};
-    if (!name || !password) return res.status(400).json({ success: false, message: 'Name and password required' });
+    const { identifier, name, password } = req.body || {};
+    const loginIdentifier = (identifier || name || '').trim();
+    if (!loginIdentifier || !password) {
+        return res.status(400).json({ success: false, message: 'Login ID and password required' });
+    }
 
-    // normalize input
-    const loginName = (name || '').trim();
-
-    // Try admin table (case-insensitive name match)
-    const adminSql = 'SELECT id, name FROM admin WHERE LOWER(name) = LOWER(?) AND password = ?';
-    db.query(adminSql, [loginName, password], (err, adminResult) => {
+    // Admins sign in with their username and password.
+    const adminSql = 'SELECT id, name, password FROM admin WHERE LOWER(name) = LOWER(?)';
+    db.query(adminSql, [loginIdentifier], (err, adminResult) => {
         if (err) {
             console.error('Login error (admin query):', err.message);
             return res.status(500).json({ success: false, message: err.message });
         }
         if (adminResult && adminResult.length > 0) {
             const admin = adminResult[0];
+            const isAdminPasswordMatch = admin.password ? (bcrypt.compareSync(password, admin.password) || admin.password === password) : false;
+            if (!isAdminPasswordMatch) {
+                return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+            }
             const token = jwt.sign({ id: admin.id, name: admin.name, role: 'admin' });
             console.log('Login success: admin', admin.name);
             return res.json({ 
@@ -38,15 +43,40 @@ exports.login = (req, res) => {
             });
         }
 
-        // Try employees table (case-insensitive name match)
-        const empSql = 'SELECT id, name, role FROM employees WHERE LOWER(name) = LOWER(?) AND password = ?';
-        db.query(empSql, [loginName, password], (err2, empResult) => {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(loginIdentifier)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please enter a valid employee email address. Admins can sign in with their username.'
+            });
+        }
+
+        // Employees sign in with registered email and password (bcrypt or legacy match)
+        const employeeEmail = loginIdentifier.toLowerCase();
+        const empSql = 'SELECT id, name, email, password, role FROM employees WHERE LOWER(email) = ?';
+        db.query(empSql, [employeeEmail], (err2, empResult) => {
             if (err2) {
                 console.error('Login error (employee query):', err2.message);
                 return res.status(500).json({ success: false, message: err2.message });
             }
             if (empResult && empResult.length > 0) {
                 const emp = empResult[0];
+                let isPasswordMatch = false;
+
+                if (emp.password) {
+                    try {
+                        isPasswordMatch = bcrypt.compareSync(password, emp.password);
+                    } catch {
+                        isPasswordMatch = false;
+                    }
+                    if (!isPasswordMatch && emp.password === password) {
+                        isPasswordMatch = true; // Fallback for legacy unhashed passwords
+                    }
+                }
+
+                if (!isPasswordMatch) {
+                    return res.status(401).json({ success: false, message: 'Incorrect password. Please try again.' });
+                }
+
                 const userRole = emp.role || 'employee';
                 const token = jwt.sign({ id: emp.id, name: emp.name, role: userRole });
                 console.log('Login success:', userRole, emp.name);
@@ -58,16 +88,16 @@ exports.login = (req, res) => {
                 });
             }
 
-            console.log('Login failed for:', loginName);
-            // Fallback: allow any user to login as employee (development convenience)
-            console.log('Fallback login granted for:', loginName);
-            // Updated custom error message
-            return res.json({ success: false, message: 'User does not exist or incorrect details' });
+            console.log('Login failed for:', loginIdentifier);
+            return res.status(404).json({
+                success: false,
+                message: 'User does not exist. Please check your email address or contact your administrator.'
+            });
         });
     });
 };
 
-// Development helper: list users (admins + employees)
+// Development helper: list users
 exports.listTestUsers = (req, res) => {
     const adminsSql = 'SELECT id, name, password, "admin" as role FROM admin';
     const empSql = 'SELECT id, name, password, "employee" as role FROM employees';

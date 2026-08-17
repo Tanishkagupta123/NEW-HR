@@ -4,13 +4,23 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 export default function Login() {
-  const [auth, setAuth] = useState({ name: '', password: '' });
+  const [auth, setAuth] = useState({ identifier: '', password: '' });
   const [errorMessage, setErrorMessage] = useState(''); // 1. Message state add kiya
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setErrorMessage(''); // Har naye attempt par message clear kar do
+
+    if (!auth.identifier.trim()) {
+      setErrorMessage('Please enter your admin name or employee email address.');
+      return;
+    }
+
+    if (!auth.password) {
+      setErrorMessage('Please enter your password.');
+      return;
+    }
 
     try {
       const res = await axios.post(`${API_BASE_URL}/admin/login`, auth);
@@ -32,7 +42,7 @@ export default function Login() {
         setErrorMessage(res.data.message); // 2. Error aane par message dikhao
       }
     } catch (err) {
-      setErrorMessage("Server Error, please try again.");
+      setErrorMessage(err.response?.data?.message || 'Unable to connect to the server. Please try again.');
     }
   };
 
@@ -58,11 +68,13 @@ export default function Login() {
           )}
 
           <div>
-            <label className="mb-2 block text-sm font-semibold text-white">Employee Name</label>
+            <label className="mb-2 block text-sm font-semibold text-white">Admin Name / Employee Email</label>
             <input 
+              required
               className="w-full rounded-2xl border border-white/20 bg-black/20 px-4 py-3 text-white placeholder-white/50 outline-none transition focus:ring-2 focus:ring-violet-400 sm:px-6 sm:py-4"
-              placeholder="Enter your full name"
-              onChange={(e) => setAuth({...auth, name: e.target.value})}
+              placeholder="Admin name or employee email"
+              value={auth.identifier}
+              onChange={(e) => setAuth({...auth, identifier: e.target.value})}
             />
           </div>
           
@@ -70,8 +82,10 @@ export default function Login() {
             <label className="mb-2 block text-sm font-semibold text-white">Password</label>
             <input 
               type="password"
+              required
               className="w-full rounded-2xl border border-white/20 bg-black/20 px-4 py-3 text-white placeholder-white/50 outline-none transition focus:ring-2 focus:ring-violet-400 sm:px-6 sm:py-4"
               placeholder="Enter your password"
+              value={auth.password}
               onChange={(e) => setAuth({...auth, password: e.target.value})}
             />
           </div>

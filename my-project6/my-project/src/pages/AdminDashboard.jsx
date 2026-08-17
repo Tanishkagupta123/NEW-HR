@@ -59,13 +59,31 @@ export default function AdminDashboard() {
 
   useEffect(() => { fetchData(); }, []);
 
+  const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [newDeptName, setNewDeptName] = useState('');
+  const [deptErr, setDeptErr] = useState('');
+
   const addDepartment = () => {
-    const newDept = prompt("Enter new department name:");
-    if (newDept && !departments.includes(newDept)) {
-      setDepartments([...departments, newDept]);
-    } else if (departments.includes(newDept)) {
-      alert("This department already exists!");
+    setNewDeptName('');
+    setDeptErr('');
+    setDeptModalOpen(true);
+  };
+
+  const handleSaveDepartment = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = newDeptName.trim();
+    if (!trimmed) {
+      setDeptErr('Please enter a department name.');
+      return;
     }
+    if (departments.map(d => String(d).toLowerCase()).includes(trimmed.toLowerCase())) {
+      setDeptErr('This department already exists!');
+      return;
+    }
+    setDepartments([...departments, trimmed]);
+    setDeptModalOpen(false);
+    setNewDeptName('');
+    setDeptErr('');
   };
 
   const handleLogout = () => {
@@ -253,6 +271,33 @@ export default function AdminDashboard() {
         </div>
         <Outlet context={{ tasksList, employeesList, tasks, setTasks, employee, setEmployee, departments, setDepartments, addDepartment, fetchData, handleOnboard, handleTaskChange, submitAllTasks, hiringList }} />
       </main>
+
+      {deptModalOpen && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+          <form onSubmit={handleSaveDepartment} className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-black text-slate-900">Add New Department</h3>
+              <button type="button" onClick={() => setDeptModalOpen(false)} className="text-slate-400 hover:text-slate-700">✕</button>
+            </div>
+            {deptErr && <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-xl">{deptErr}</p>}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">Department Name</label>
+              <input
+                type="text"
+                autoFocus
+                value={newDeptName}
+                onChange={(e) => setNewDeptName(e.target.value)}
+                placeholder="e.g. Engineering, Marketing, Finance"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-xs text-slate-900 outline-none focus:border-violet-600 focus:bg-white focus:ring-3 focus:ring-violet-100"
+              />
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" onClick={() => setDeptModalOpen(false)} className="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl">Cancel</button>
+              <button type="submit" className="px-5 py-2 text-xs font-bold text-white bg-violet-600 hover:bg-violet-700 rounded-xl">Add Department</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
