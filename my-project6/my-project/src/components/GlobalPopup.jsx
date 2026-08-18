@@ -61,42 +61,42 @@ export default function GlobalPopup() {
       {/* ALERT POPUP */}
       {popup && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-950/50 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
           onMouseDown={closePopup}
         >
           <div
             onMouseDown={(e) => e.stopPropagation()}
-            className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100 animate-in zoom-in-95 duration-150"
           >
-            <div className={`flex items-center justify-between border-b px-6 py-4 ${
-              popup.type === 'error' ? 'border-red-100 bg-red-50/50 text-red-900' :
-              popup.type === 'success' ? 'border-emerald-100 bg-emerald-50/50 text-emerald-900' :
-              'border-violet-100 bg-violet-50/50 text-violet-950'
+            <div className={`flex items-center justify-between border-b px-6 py-4.5 ${
+              popup.type === 'error' ? 'border-rose-100 bg-rose-50/60 text-rose-950' :
+              popup.type === 'success' ? 'border-emerald-100 bg-emerald-50/60 text-emerald-950' :
+              'border-violet-100 bg-violet-50/60 text-violet-950'
             }`}>
               <div className="flex items-center gap-2.5">
                 <span className={`h-2.5 w-2.5 rounded-full ${
-                  popup.type === 'error' ? 'bg-red-500' :
+                  popup.type === 'error' ? 'bg-rose-500' :
                   popup.type === 'success' ? 'bg-emerald-500' :
                   'bg-violet-600'
                 }`}></span>
-                <h3 className="text-sm font-black uppercase tracking-wider">{popup.title}</h3>
+                <h3 className="text-xs font-black uppercase tracking-wider">{popup.title}</h3>
               </div>
 
               <button
                 onClick={closePopup}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 transition"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-6">
-              <p className="text-sm leading-relaxed text-slate-700 font-medium whitespace-pre-wrap">
+            <div className="p-6 bg-white">
+              <p className="text-xs leading-relaxed text-slate-700 font-medium whitespace-pre-wrap">
                 {popup.message}
               </p>
             </div>
 
-            <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+            <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50/50 px-6 py-3.5">
               <button
                 type="button"
                 onClick={closePopup}
@@ -113,15 +113,15 @@ export default function GlobalPopup() {
       {/* PROMPT MODAL */}
       {promptState && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
           onMouseDown={handlePromptCancel}
         >
           <form
             onSubmit={handlePromptSubmit}
             onMouseDown={(e) => e.stopPropagation()}
-            className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200"
+            className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100 animate-in zoom-in-95 duration-150"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 bg-violet-50/50 px-6 py-4 text-violet-950">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-violet-50/60 px-6 py-4.5 text-violet-950">
               <div className="flex items-center gap-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-violet-600"></span>
                 <h3 className="text-sm font-black uppercase tracking-wider">Input Required</h3>

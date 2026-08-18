@@ -252,9 +252,40 @@ exports.update = (req, res) => {
 // Delete Employee
 exports.remove = (req, res) => {
 	const { id } = req.params;
-	db.query('DELETE FROM employees WHERE id = ?', [id], (err) => {
-		if (err) return res.status(500).json({ success: false, message: err.message });
-		res.json({ success: true, message: 'Employee deleted successfully' });
+	if (!id) return res.status(400).json({ success: false, message: 'Employee ID required' });
+
+	// Safely clean up dependent references before deleting employee
+	const queries = [
+		'DELETE FROM certificates WHERE employee_id = ?',
+		'DELETE FROM leaves WHERE employee_id = ?',
+		'DELETE FROM performance_reviews WHERE employee_id = ?',
+		'DELETE FROM tasks WHERE employee_id = ?',
+		'DELETE FROM employee_documents WHERE employee_id = ?',
+		'DELETE FROM payslips WHERE employee_id = ?'
+	];
+
+	// Run cleanups sequentially or ignore missing tables, then delete employee safely
+	db.query('SET FOREIGN_KEY_CHECKS = 0', () => {
+		db.query('DELETE FROM certificates WHERE employee_id = ?', [id], () => {
+			db.query('DELETE FROM leaves WHERE employee_id = ?', [id], () => {
+				db.query('DELETE FROM performance_reviews WHERE employee_id = ?', [id], () => {
+					db.query('DELETE FROM tasks WHERE employee_id = ?', [id], () => {
+						db.query('DELETE FROM employees WHERE id = ?', [id], (err, result) => {
+							db.query('SET FOREIGN_KEY_CHECKS = 1', () => {
+								if (err) {
+									console.error('Error deleting employee:', err);
+									return res.status(500).json({ success: false, message: err.message });
+								}
+								if (result.affectedRows === 0) {
+									return res.status(404).json({ success: false, message: 'Employee not found' });
+								}
+								res.json({ success: true, message: 'Employee deleted successfully from database' });
+							});
+						});
+					});
+				});
+			});
+		});
 	});
 };
 

@@ -264,7 +264,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <img src={logo} alt="AS GROUP DIGITAL PVT LTD" className="h-10 w-10 rounded-xl border border-slate-200 object-contain" />
             <div>
-              <p className="text-sm font-bold text-violet-950">AS GROUP DIGITAL PVT LTD</p>
+              <p className="text-sm font-bold text-slate-900">AS GROUP DIGITAL PVT LTD</p>
               <p className="text-xs text-slate-500">Admin Panel</p>
             </div>
           </div>
@@ -273,7 +273,7 @@ export default function AdminDashboard() {
       </main>
 
       {deptModalOpen && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs">
           <form onSubmit={handleSaveDepartment} className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-base font-black text-slate-900">Add New Department</h3>

@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "brand": "identix",
+  "ip": "192.168.1.201",
+  "port": 4370,
+  "timeout": 5000,
+  "syncIntervalMinutes": 5,
+  "onTimeLimit": "09:35",
+  "lateLimit": "11:00",
+  "lateFineAmount": 50,
+  "earlyOutLimit": "13:00",
+  "fullDayOutLimit": "17:00"
+}

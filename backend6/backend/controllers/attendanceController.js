@@ -56,47 +56,75 @@ const getDistanceMeters = (lat1, lon1, lat2, lon2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 };
 
+const { readConfig } = require('./biometricController');
+
 const computeAttendanceStatus = (checkIn, checkOut, dailySalary = 0) => {
-  const standardStart = 9 * 60 + 35; // 09:35
-  const lateBoundary = 11 * 60; // 11:00
-  const halfDayThreshold = 4 * 60;
+  const cfg = (typeof readConfig === 'function') ? readConfig() : {};
+  const ON_TIME_LIMIT   = toMinutes(cfg.onTimeLimit || '09:35');
+  const VERY_LATE_LIMIT = toMinutes(cfg.lateLimit || '11:00');
+  const EARLY_OUT_LIMIT = toMinutes(cfg.earlyOutLimit || '13:00');
+  const FULL_DAY_OUT    = toMinutes(cfg.fullDayOutLimit || '17:00');
+  const LATE_FINE       = Number(cfg.lateFineAmount ?? 50);
+
   const result = { status: 'PENDING', lateFine: 0 };
 
-  if (checkIn) {
-    const checkInMinutes = toMinutes(checkIn);
-    if (!checkOut) {
-      if (checkInMinutes > lateBoundary) {
-        result.status = 'HALF_DAY';
-        result.lateFine = +(dailySalary / 2).toFixed(2);
-      } else if (checkInMinutes > standardStart) {
-        result.status = 'LATE';
-        result.lateFine = 50;
-      } else {
-        result.status = 'IN';
-      }
-      return result;
-    }
+  if (!checkIn) {
+    if (checkOut) { result.status = 'OUT'; }
+    return result;
+  }
 
-    const checkOutMinutes = toMinutes(checkOut);
-    const workedMinutes = checkOutMinutes - checkInMinutes;
+  const inMin  = toMinutes(checkIn);
+  const outMin = checkOut ? toMinutes(checkOut) : null;
 
-    if (workedMinutes < halfDayThreshold || checkInMinutes > lateBoundary) {
-      result.status = 'HALF_DAY';
+  const isOnTime   = inMin <= ON_TIME_LIMIT;
+  const isLate     = inMin > ON_TIME_LIMIT && inMin <= VERY_LATE_LIMIT;
+  const isVeryLate = inMin > VERY_LATE_LIMIT;
+
+  // ── No checkout yet ──────────────────────────────────────────
+  if (outMin === null) {
+    if (isVeryLate) {
+      result.status  = 'HALF_DAY';
       result.lateFine = +(dailySalary / 2).toFixed(2);
-    } else if (checkInMinutes > standardStart) {
-      result.status = 'LATE';
-      result.lateFine = 50;
+    } else if (isLate) {
+      result.status  = 'LATE';
+      result.lateFine = LATE_FINE;
     } else {
-      result.status = 'COMPLETED';
+      result.status = 'IN';
     }
     return result;
   }
 
-  if (checkOut) {
-    result.status = 'OUT';
+  // ── With checkout ────────────────────────────────────────────
+  if (isVeryLate) {
+    result.status   = 'HALF_DAY';
+    result.lateFine = +(dailySalary / 2).toFixed(2);
     return result;
   }
 
+  if (outMin < EARLY_OUT_LIMIT) {
+    if (isLate) {
+      result.status   = 'HALF_DAY';
+      result.lateFine = +(dailySalary / 2).toFixed(2);
+    } else {
+      result.status   = 'FULL_CUT';
+      result.lateFine = +dailySalary.toFixed(2);
+    }
+    return result;
+  }
+
+  if (outMin >= FULL_DAY_OUT) {
+    if (isLate) {
+      result.status   = 'LATE';
+      result.lateFine = LATE_FINE;
+    } else {
+      result.status   = 'COMPLETED';
+      result.lateFine = 0;
+    }
+    return result;
+  }
+
+  result.status   = 'HALF_DAY';
+  result.lateFine = +(dailySalary / 2).toFixed(2);
   return result;
 };
 
@@ -316,8 +344,76 @@ const markAttendance = (req, res) => {
   });
 };
 
+const adminOverrideAttendance = (req, res) => {
+  const { employee_id, date, check_in, check_out } = req.body;
+
+  if (!employee_id || !date) {
+    return res.status(400).json({ success: false, message: 'employee_id and date are required' });
+  }
+
+  const attendanceDate = date;
+  const now = new Date();
+
+  const employeeSql = 'SELECT name, monthly_salary FROM employees WHERE id = ? LIMIT 1';
+  db.query(employeeSql, [employee_id], (empErr, empRows) => {
+    if (empErr) return res.status(500).json({ success: false, message: empErr.message });
+
+    const employeeName = empRows?.[0]?.name || null;
+    const monthlySalary = parseFloat(empRows?.[0]?.monthly_salary || 0);
+    const dailySalary = monthlySalary ? parseFloat((monthlySalary / 30).toFixed(2)) : 0;
+
+    const computed = computeAttendanceStatus(check_in || null, check_out || null, dailySalary);
+    const finalSalary = check_out ? Math.max(0, dailySalary - computed.lateFine) : 0;
+    const dayName = new Date(attendanceDate).toLocaleDateString('en-GB', { weekday: 'long' });
+
+    const selectSql = 'SELECT * FROM attendance WHERE employee_id = ? AND `date` = ? LIMIT 1';
+    db.query(selectSql, [employee_id, attendanceDate], (selErr, rows) => {
+      if (selErr) return res.status(500).json({ success: false, message: selErr.message });
+
+      const existing = rows?.[0];
+
+      const payload = {
+        employee_id,
+        employee_name: employeeName,
+        date: attendanceDate,
+        year: new Date(attendanceDate).getFullYear(),
+        month: new Date(attendanceDate).getMonth() + 1,
+        day: dayName,
+        check_in: check_in || null,
+        check_out: check_out || null,
+        status: computed.status,
+        attendance_status: computed.status,
+        late_fine: computed.lateFine,
+        final_salary: finalSalary,
+        mode: 'Admin',
+        updated_at: now
+      };
+
+      if (!existing) {
+        const cols = Object.keys(payload).filter(k => payload[k] !== null && payload[k] !== undefined);
+        const vals = cols.map(k => payload[k]);
+        const insertSql = `INSERT INTO attendance (${cols.join(', ')}) VALUES (${cols.map(() => '?').join(', ')})`;
+        db.query(insertSql, vals, (insErr) => {
+          if (insErr) return res.status(500).json({ success: false, message: insErr.message });
+          return res.json({ success: true, message: 'Attendance created by admin', data: payload });
+        });
+      } else {
+        const fields = Object.keys(payload).map(k => `${k} = ?`).join(', ');
+        const vals = [...Object.values(payload), employee_id, attendanceDate];
+        const updateSql = `UPDATE attendance SET ${fields} WHERE employee_id = ? AND \`date\` = ?`;
+        db.query(updateSql, vals, (updErr) => {
+          if (updErr) return res.status(500).json({ success: false, message: updErr.message });
+          return res.json({ success: true, message: 'Attendance overridden by admin', data: payload });
+        });
+      }
+    });
+  });
+};
+
 module.exports = {
   getMonthlyAttendance,
   getEmployeeAttendance,
-  markAttendance
+  markAttendance,
+  adminOverrideAttendance
 };
+

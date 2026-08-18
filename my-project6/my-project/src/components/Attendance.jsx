@@ -1,625 +1,920 @@
 import { API_BASE_URL } from '../config/api';
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link, useOutletContext } from 'react-router-dom';
+import { useOutletContext } from 'react-router-dom';
 
 export default function Attendance() {
-  const { employeesList } = useOutletContext();
-  const [records, setRecords] = useState({});
-  const [allRecords, setAllRecords] = useState([]);
-  const [loadingMap, setLoadingMap] = useState({});
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [filterDate, setFilterDate] = useState(null);
-  const [dayFilter, setDayFilter] = useState('');
+  const context = useOutletContext() || {};
+  const [localEmployees, setLocalEmployees] = useState([]);
+  const employeesList = (context.employeesList && context.employeesList.length > 0) ? context.employeesList : localEmployees;
+
+  useEffect(() => {
+    if (!context.employeesList || context.employeesList.length === 0) {
+      axios.get(`${API_BASE_URL}/employees`)
+        .then(res => { if (Array.isArray(res.data)) setLocalEmployees(res.data); })
+        .catch(err => console.error("Error fetching employees in Attendance:", err));
+    }
+  }, [context.employeesList]);
+
+  const [allRecords, setAllRecords]           = useState([]);
+  const [loadingMap, setLoadingMap]           = useState({});
+  const [searchTerm, setSearchTerm]           = useState('');
+  const [selectedMonth, setSelectedMonth]     = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear]       = useState(new Date().getFullYear());
+  const [filterDate, setFilterDate]           = useState(null);
+  const [dayFilter, setDayFilter]             = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
-  const [clockNow, setClockNow] = useState(new Date());
-  const STORAGE_KEY = 'manualAttendanceRecords';
+  const [clockNow, setClockNow]               = useState(new Date());
+  const [overrideModal, setOverrideModal]     = useState(null);
+  const [overrideForm, setOverrideForm]       = useState({ check_in: '', check_out: '', date: '' });
+  const [overrideSaving, setOverrideSaving]   = useState(false);
+  const [overrideMsg, setOverrideMsg]         = useState('');
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  const getBucketKey = (year, month) => `${year}-${String(month + 1).padStart(2, '0')}`;
+  // ── Machine Settings state (admin only) ──
+  const [showMachineSettings, setShowMachineSettings] = useState(false);
+  const [machineConfig, setMachineConfig] = useState({ enabled: false, brand: 'ZKTeco', ip: '', port: 4370, syncIntervalMinutes: 5 });
+  const [machineMsg, setMachineMsg]   = useState('');
+  const [machineBusy, setMachineBusy] = useState(false);
 
-  const getDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  // Admin check — only admin can see edit/machine options
+  const isAdmin = (() => {
+    try {
+      const u = JSON.parse(localStorage.getItem('user') || 'null');
+      if (!u) return true;
+      const role = (u.role || u.position || '').toString().toLowerCase();
+      return role === 'admin' || role === 'superadmin' || u.isAdmin === true;
+    } catch { return false; }
+  })();
 
-  const formatLocalDate = (dateString) => {
-    if (!dateString) return '';
-    const d = new Date(dateString);
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const formatLocalDate = (ds) => {
+    if (!ds) return '';
+    const d = new Date(ds);
     if (Number.isNaN(d.getTime())) return '';
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const buildDateCounts = (recordsListOrObj, year, month, empId) => {
-    const counts = {};
-    if (!recordsListOrObj) return counts;
-    const consider = (rec) => {
-      if (!rec || !rec.date) return;
-      const d = new Date(rec.date);
-      if (d.getFullYear() === year && d.getMonth() === month) {
-        const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        counts[key] = (counts[key] || 0) + 1;
-      }
-    };
-
-    const list = Array.isArray(recordsListOrObj)
-      ? recordsListOrObj
-      : Object.values(recordsListOrObj || {}).flat();
-
-    list.forEach((rec) => {
-      const id = rec.employeeId || rec.employee_id || rec.empId || rec.student_id;
-      if (empId && Number(id) !== Number(empId)) return;
-      consider(rec);
-    });
-    return counts;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   };
 
   const parseAttendanceTime = (value, dateString) => {
     if (!value) return null;
-    if (typeof value !== 'string') {
-      const parsed = new Date(value);
-      return Number.isNaN(parsed.getTime()) ? null : parsed;
-    }
+    if (typeof value !== 'string') { const p=new Date(value); return Number.isNaN(p.getTime())?null:p; }
     const iso = new Date(value);
     if (!Number.isNaN(iso.getTime())) return iso;
     const match = value.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
     if (!match) return null;
-    const [, h, m, s = '00'] = match;
-    let dateValue = dateString || '';
-    if (dateValue.includes('T')) dateValue = dateValue.split('T')[0];
-    const date = dateValue ? new Date(`${dateValue}T00:00:00`) : new Date();
-    if (Number.isNaN(date.getTime())) return null;
-    date.setHours(Number(h), Number(m), Number(s), 0);
-    return date;
+    const [,h,m,s='00'] = match;
+    let dv = dateString||'';
+    if (dv.includes('T')) dv=dv.split('T')[0];
+    const base = dv ? new Date(`${dv}T00:00:00`) : new Date();
+    if (Number.isNaN(base.getTime())) return null;
+    base.setHours(Number(h),Number(m),Number(s),0);
+    return base;
   };
 
-  const calculateWorkHours = (inTime, outTime, dateString) => {
-    const start = parseAttendanceTime(inTime, dateString);
-    const end = parseAttendanceTime(outTime, dateString);
-    if (!start || !end) return '--';
-    let totalMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
-    if (totalMinutes < 0) totalMinutes = Math.abs(totalMinutes);
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    return `${h}h ${m}m`;
+  const calculateWorkHours = (inT, outT, ds) => {
+    const s=parseAttendanceTime(inT,ds), e=parseAttendanceTime(outT,ds);
+    if (!s||!e) return '--';
+    let mins=Math.round((e-s)/60000); if(mins<0)mins=Math.abs(mins);
+    return `${Math.floor(mins/60)}h ${mins%60}m`;
   };
 
-  // Deduction logic:
-  // - If check-in time is after 09:35 and up to 11:00 => deduct ₹50
-  // - If check-in time is after 11:00 => mark half-day and deduct half of per-day salary
-  // Assumption: per-day salary = monthly_salary / 30
+  const getDayName = (ds) => {
+    if (!ds) return '--';
+    const d=new Date(ds); if(Number.isNaN(d.getTime()))return '--';
+    return d.toLocaleDateString('en-GB',{weekday:'short'});
+  };
+
   const computeDeduction = (emp, rec) => {
     try {
-      if (!emp || !rec || !rec.checkIn) return { amount: 0, type: 'NONE' };
-      const monthly = Number(emp.monthly_salary || emp.monthlySalary || emp.salary || 0);
-      const perDay = monthly && !Number.isNaN(monthly) ? monthly / 30 : 0;
-      const checkIn = parseAttendanceTime(rec.checkIn || rec.check_in, rec.date);
-      if (!checkIn) return { amount: 0, type: 'NONE' };
+      if (!emp||!rec) return {amount:0,type:'NONE'};
+      const monthly=Number(emp.monthly_salary||emp.monthlySalary||0);
+      const perDay=monthly>0?monthly/30:0;
+      const checkIn=rec.checkIn||rec.check_in||null;
+      const checkOut=rec.checkOut||rec.check_out||null;
+      if (!checkIn) return {amount:0,type:'NONE'};
+      const inDate=parseAttendanceTime(checkIn,rec.date);
+      if (!inDate) return {amount:0,type:'NONE'};
+      const inMin=inDate.getHours()*60+inDate.getMinutes();
 
-      const minutes = checkIn.getHours() * 60 + checkIn.getMinutes();
-      const lateBoundary = 9 * 60 + 35; // 09:35 -> after this is considered late
-      const halfBoundary = 11 * 60; // 11:00 -> after this is half-day
+      // Read timings dynamically configured by Admin
+      const toMinFromStr = (str, def) => {
+        const [h, m] = (str || def).split(':').map(Number);
+        return h * 60 + m;
+      };
 
-      if (minutes > halfBoundary) {
-        const amt = +(perDay / 2).toFixed(2);
-        return { amount: amt, type: 'HALF_DAY' };
+      const ON_TIME   = toMinFromStr(machineConfig.onTimeLimit, '09:35');
+      const VERY_LATE = toMinFromStr(machineConfig.lateLimit, '11:00');
+      const EARLY_OUT = toMinFromStr(machineConfig.earlyOutLimit, '13:00');
+      const FULL_OUT  = toMinFromStr(machineConfig.fullDayOutLimit, '17:00');
+      const LATE_FINE = Number(machineConfig.lateFineAmount ?? 50);
+
+      const isLate=inMin>ON_TIME&&inMin<=VERY_LATE, isVeryLate=inMin>VERY_LATE;
+      if (!checkOut) {
+        if(isVeryLate)return{amount:+(perDay/2).toFixed(2),type:'HALF_DAY'};
+        if(isLate)return{amount:LATE_FINE,type:'LATE'};
+        return{amount:0,type:'NONE'};
       }
-      if (minutes > lateBoundary && minutes <= halfBoundary) {
-        return { amount: 50, type: 'LATE' };
+      const outDate=parseAttendanceTime(checkOut,rec.date);
+      if (!outDate) return {amount:0,type:'NONE'};
+      const outMin=outDate.getHours()*60+outDate.getMinutes();
+      if(isVeryLate)return{amount:+(perDay/2).toFixed(2),type:'HALF_DAY'};
+      if(outMin<EARLY_OUT){
+        if(isLate)return{amount:+(perDay/2).toFixed(2),type:'HALF_DAY'};
+        return{amount:+perDay.toFixed(2),type:'FULL_CUT'};
       }
-      return { amount: 0, type: 'NONE' };
-    } catch (e) {
-      return { amount: 0, type: 'NONE' };
-    }
+      if(outMin>=FULL_OUT){
+        if(isLate)return{amount:LATE_FINE,type:'LATE'};
+        return{amount:0,type:'NONE'};
+      }
+      return{amount:+(perDay/2).toFixed(2),type:'HALF_DAY'};
+    } catch { return {amount:0,type:'NONE'}; }
   };
 
-  const getDayName = (dateString) => {
-    if (!dateString) return '--';
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return '--';
-    return date.toLocaleDateString('en-GB', { weekday: 'short' });
-  };
-
-  const getMonthNameFromDate = (dateString) => {
-    if (!dateString) return '--';
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return '--';
-    return monthNames[date.getMonth()] || '--';
-  };
-
-  const getYearFromDate = (dateString) => {
-    if (!dateString) return '--';
-    const date = new Date(dateString);
-    if (Number.isNaN(date.getTime())) return '--';
-    return date.getFullYear();
-  };
-
-  const getEventStatus = (rec) => {
-    if (!rec) return '--';
-    if (rec.checkOut || rec.check_out) return 'OUT';
-    if (rec.checkIn || rec.check_in) return 'IN';
-    return '--';
-  };
-
-  const getAttendanceLabel = (rec) => {
-    if (!rec || (!rec.checkIn && !rec.check_in && !rec.checkOut && !rec.check_out && !rec.status && !rec.attendance_status)) {
-      return filterDate ? 'ABSENT' : '--';
-    }
-    const statusText = (rec.status || rec.attendance_status || '').toString().trim().toUpperCase();
-    if (['OUT', 'IN', 'COMPLETED', 'PRESENT'].includes(statusText)) {
-      return 'PRESENT';
-    }
-    if (['HALF_DAY', 'LATE', 'ABSENT'].includes(statusText)) {
-      return statusText;
-    }
-    if (rec.checkIn || rec.check_in || rec.checkOut || rec.check_out) {
-      return 'PRESENT';
-    }
-    return filterDate ? 'ABSENT' : '--';
-  };
-
-  const readManualRecords = (year, month) => {
-    try {
-      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      return all[getBucketKey(year, month)] || {};
-    } catch {
-      return {};
-    }
-  };
-
-  const saveManualRecords = (year, month, data) => {
-    try {
-      const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-      all[getBucketKey(year, month)] = data;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-    } catch {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ [getBucketKey(year, month)]: data }));
-    }
-  };
-
-  const normalizeAttendanceItem = (item) => {
+  const normalizeItem = (item) => {
     if (!item) return null;
-    const checkIn = item.check_in || item.checkIn || null;
-    const checkOut = item.check_out || item.checkOut || null;
-    const key = item.employee_id || item.empId || item.student_id || item.id;
-    return {
-      ...item,
-      employeeId: key,
-      checkIn,
-      checkOut,
-      status: item.status || item.attendance_status || item.status,
-      day: item.day || item.day,
-      mode: item.mode || item.mode,
-      date: item.date || item.date
-    };
-  };
-
-  const normalizeRemoteRecords = (data) => {
-    if (!data) return {};
-    if (Array.isArray(data)) {
-      return data.reduce((acc, item) => {
-        const normalized = normalizeAttendanceItem(item);
-        if (!normalized?.employeeId) return acc;
-        const existing = acc[normalized.employeeId];
-        if (!existing) {
-          acc[normalized.employeeId] = normalized;
-          return acc;
-        }
-
-        acc[normalized.employeeId] = {
-          ...existing,
-          ...normalized,
-          checkIn: existing.checkIn || normalized.checkIn,
-          checkOut: existing.checkOut || normalized.checkOut,
-          date: existing.date || normalized.date,
-          status: normalized.status || existing.status,
-          mode: normalized.mode || existing.mode,
-        };
-        return acc;
-      }, {});
-    }
-    if (typeof data === 'object') {
-      const normalized = normalizeAttendanceItem(data);
-      return normalized?.employeeId ? { [normalized.employeeId]: normalized } : {};
-    }
-    return {};
-  };
-
-  const getCurrentTime = () => {
-    const now = new Date();
-    return now.toLocaleTimeString('en-GB', { hour12: false, hour: '2-digit', minute: '2-digit' });
-  };
-
-  const getActorRole = () => {
-    try {
-      const u = JSON.parse(localStorage.getItem('user') || 'null');
-      if (!u) return 'ADMIN';
-      return (u.role || u.position || (u.isAdmin ? 'ADMIN' : 'EMPLOYEE')).toString().toUpperCase();
-    } catch (e) {
-      return 'ADMIN';
-    }
+    const checkIn=item.check_in||item.checkIn||null;
+    const checkOut=item.check_out||item.checkOut||null;
+    const empId=item.employee_id||item.empId||item.student_id||item.id;
+    return {...item,employeeId:empId,checkIn,checkOut};
   };
 
   const fetchAttendanceData = async (month) => {
-    const manual = readManualRecords(selectedYear, month);
     try {
-      const res = await axios.get(`${API_BASE_URL}/attendance/today`, {
-        params: { year: selectedYear, month: month + 1 }
-      });
-      const remote = normalizeRemoteRecords(res.data);
-      // Prefer remote DB records over any local manual cache
-      setRecords({ ...manual, ...remote });
+      const res=await axios.get(`${API_BASE_URL}/attendance/today`,{params:{year:selectedYear,month:month+1}});
+      const list=Array.isArray(res.data)?res.data.map(normalizeItem).filter(Boolean):[];
+      setAllRecords(list);
+    } catch(err){console.error('Attendance fetch error',err);}
+  };
 
-      const normalizedList = Array.isArray(res.data)
-        ? res.data.map(normalizeAttendanceItem)
-        : [];
-      const manualList = Object.values(manual);
-      setAllRecords([...manualList, ...normalizedList]);
-    } catch (err) {
-      console.error('Data sync error', err);
-      setRecords(manual);
-      setAllRecords(Object.values(manual));
-    }
+  // Load machine config on mount (admin only)
+  useEffect(()=>{
+    if (!isAdmin) return;
+    axios.get(`${API_BASE_URL}/biometric/config`).then(r=>{
+      if(r.data.success) setMachineConfig(r.data.config);
+    }).catch(()=>{});
+  },[]);
+
+  const saveMachineConfig = async () => {
+    setMachineBusy(true); setMachineMsg('');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/biometric/config`, machineConfig);
+      setMachineMsg(res.data.success ? '✅ Saved! Auto-sync will start.' : '❌ ' + res.data.message);
+    } catch(e){ setMachineMsg('❌ ' + e.message); }
+    setMachineBusy(false);
+  };
+
+  const testMachineConnection = async () => {
+    setMachineBusy(true); setMachineMsg('Testing...');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/biometric/test-connection`);
+      setMachineMsg(res.data.success ? '✅ Connected! ' + JSON.stringify(res.data.deviceInfo||{}) : '❌ ' + res.data.message);
+    } catch(e){ setMachineMsg('❌ ' + (e.response?.data?.message || e.message)); }
+    setMachineBusy(false);
+  };
+
+  const syncMachineNow = async () => {
+    setMachineBusy(true); setMachineMsg('Syncing...');
+    try {
+      const res = await axios.post(`${API_BASE_URL}/biometric/sync`);
+      setMachineMsg(res.data.success ? `✅ ${res.data.message}` : '❌ ' + res.data.message);
+      fetchAttendanceData(selectedMonth);
+    } catch(e){ setMachineMsg('❌ ' + (e.response?.data?.message || e.message)); }
+    setMachineBusy(false);
   };
 
   useEffect(() => {
     fetchAttendanceData(selectedMonth);
-    const interval = setInterval(() => fetchAttendanceData(selectedMonth), 5000);
-    return () => clearInterval(interval);
+    const iv = setInterval(() => fetchAttendanceData(selectedMonth), 5000);
+    return () => clearInterval(iv);
   }, [selectedMonth, selectedYear]);
 
-  // Live clock for the header — purely cosmetic, not tied to fetch logic
   useEffect(() => {
-    const tick = setInterval(() => setClockNow(new Date()), 1000);
-    return () => clearInterval(tick);
+    const t = setInterval(() => setClockNow(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
   const getEmployeeRecord = (emp) => {
-    const empId = String(emp.id || emp.employee_id || emp.empId || emp.student_id || '');
-    const empRecords = allRecords
-      .filter(r => String(r.employeeId || r.employee_id || r.empId || r.student_id || '') === empId)
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const id = String(emp.id || '');
+    const code = String(emp.employee_code || '');
+    const recs = allRecords.filter(r => 
+      String(r.employeeId || r.employee_id || '') === id ||
+      (r.emp_id && (String(r.emp_id) === id || String(r.emp_id) === code)) ||
+      (r.employee_name && emp.name && r.employee_name.trim().toLowerCase() === emp.name.trim().toLowerCase())
+    ).sort((a, b) => new Date(b.date) - new Date(a.date));
 
-    if (filterDate) {
-      return empRecords.find(r => formatLocalDate(r.date) === filterDate) || {};
-    }
-    return empRecords[0] || {};
+    if (filterDate) return recs.find(r => formatLocalDate(r.date) === filterDate) || {};
+    return recs[0] || {};
   };
 
-  const filteredEmployees = employeesList
-    .filter((emp) => emp.name.toLowerCase().includes(searchTerm.trim().toLowerCase()))
-    .filter((emp) => (!selectedEmployeeId ? true : String(emp.id) === String(selectedEmployeeId)))
-    .filter((emp) => {
-      const rec = getEmployeeRecord(emp);
-      if (filterDate) return true;
-      if (dayFilter && getDayName(rec.date) !== dayFilter) return false;
-      return true;
+  const getAttendanceLabel = (rec) => {
+    if (!rec||(!rec.checkIn&&!rec.check_in&&!rec.checkOut&&!rec.check_out&&!rec.status&&!rec.attendance_status))
+      return filterDate?'ABSENT':'--';
+    const s=(rec.status||rec.attendance_status||'').toString().trim().toUpperCase();
+    if(['COMPLETED','IN','OUT','PRESENT'].includes(s))return'PRESENT';
+    if(['HALF_DAY','LATE','ABSENT','FULL_CUT'].includes(s))return s;
+    if(rec.checkIn||rec.check_in)return'PRESENT';
+    return filterDate?'ABSENT':'--';
+  };
+
+  const openOverride = (emp, rec) => {
+    const today=new Date().toISOString().slice(0,10);
+    setOverrideForm({
+      check_in:rec.checkIn||rec.check_in||'',
+      check_out:rec.checkOut||rec.check_out||'',
+      date:formatLocalDate(rec.date)||today,
     });
+    setOverrideModal({emp,rec});
+    setOverrideMsg('');
+  };
 
-  const attendanceSummary = filteredEmployees.reduce((summary, emp) => {
-    const rec = getEmployeeRecord(emp);
-    summary.total += 1;
-    const status = (rec.status || rec.attendance_status || '').toString().toUpperCase();
-    if (status === 'LATE') summary.late += 1;
-    else if (status === 'HALF_DAY') summary.halfDay += 1;
-    else if (status === 'ABSENT' || (!rec.date && filterDate)) summary.absent += 1;
-    else if (status === 'COMPLETED' || status === 'IN' || status === 'OUT') summary.onTime += 1;
-    return summary;
-  }, { total: 0, onTime: 0, late: 0, halfDay: 0, absent: 0 });
-
-  const handleAction = async (empId, type) => {
-    setLoadingMap((prev) => ({ ...prev, [empId]: true }));
-    const currentTime = getCurrentTime();
-    const updatedRecords = { ...records };
-    const rec = { ...updatedRecords[empId] };
-    const actorRole = getActorRole();
-
-    // Prevent marking if the other party already marked
-    if (rec.markedBy && rec.markedBy !== actorRole) {
-      alert(`Attendance already marked by ${rec.markedBy}. You cannot override.`);
-      setLoadingMap((prev) => ({ ...prev, [empId]: false }));
-      return;
-    }
-
-    if (type === 'CHECK-IN') {
-      rec.checkIn = currentTime;
-      rec.status = 'IN';
-      rec.mode = 'Biometric';
-      rec.markedBy = actorRole;
-    } else {
-      rec.checkOut = currentTime;
-      rec.status = rec.checkIn ? 'COMPLETED' : 'OUT';
-      rec.mode = 'Biometric';
-      rec.markedBy = actorRole;
-    }
-
-    rec.date = filterDate || rec.date || new Date().toISOString().slice(0, 10);
-    rec.employeeId = empId;
-    updatedRecords[empId] = rec;
-    setRecords(updatedRecords);
-    setAllRecords((prev) => {
-      const filtered = prev.filter(r => String(r.employeeId || r.employee_id) !== String(empId));
-      return [...filtered, rec];
-    });
-    saveManualRecords(selectedYear, selectedMonth, updatedRecords);
-
+  const handleOverrideSave = async () => {
+    if(!overrideModal)return;
+    setOverrideSaving(true); setOverrideMsg('');
     try {
-      await axios.post(`${API_BASE_URL}/attendance/mark`, {
-        empId,
-        student_id: empId,
-        type,
-        mode: 'Manual',
-        actor: actorRole,
-        year: selectedYear,
-        month: selectedMonth + 1,
-        date: rec.date
+      const res=await axios.post(`${API_BASE_URL}/attendance/admin-override`,{
+        employee_id:overrideModal.emp.id,
+        date:overrideForm.date,
+        check_in:overrideForm.check_in||null,
+        check_out:overrideForm.check_out||null,
       });
-      // On success remove local manual entry so DB becomes authoritative
-      try {
-        const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-        const bucketKey = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
-        const bucket = all[bucketKey] || {};
-        if (bucket[empId]) {
-          delete bucket[empId];
-          all[bucketKey] = bucket;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-        }
-      } catch (e) {}
-      alert(`${type} Success!`);
-      fetchAttendanceData(selectedMonth);
-    } catch (err) {
-      alert('Manual record saved locally.');
-    } finally {
-      setLoadingMap((prev) => ({ ...prev, [empId]: false }));
-    }
+      if(res.data.success){
+        setOverrideMsg('Saved!');
+        fetchAttendanceData(selectedMonth);
+        setTimeout(()=>setOverrideModal(null),800);
+      } else { setOverrideMsg(res.data.message||'Failed'); }
+    } catch(err){ setOverrideMsg(err.response?.data?.message||err.message); }
+    finally { setOverrideSaving(false); }
   };
 
-  // --- Presentation-only helpers (no business logic here) ---
-  const initials = (name = '') =>
-    name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || '?';
+  const initials=(name='')=>name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join('')||'?';
 
-  const statusFlag = (status) => {
-    if (status === 'LATE') return 'border-l-amber-400';
-    if (status === 'HALF_DAY') return 'border-l-rose-400';
-    if (status === 'ABSENT') return 'border-l-red-400';
-    if (status === 'PRESENT' || status === 'COMPLETED' || status === 'IN' || status === 'OUT') return 'border-l-emerald-400';
-    return 'border-l-slate-200';
+  const statusFlag=(s)=>{
+    if(s==='LATE')return'border-l-amber-400';
+    if(s==='HALF_DAY')return'border-l-rose-400';
+    if(s==='FULL_CUT'||s==='ABSENT')return'border-l-red-500';
+    if(['PRESENT','COMPLETED','IN','OUT'].includes(s))return'border-l-emerald-400';
+    return'border-l-slate-200';
   };
 
-  const statusPill = (status) => {
-    const map = {
-      LATE: 'bg-amber-50 text-amber-700 ring-1 ring-amber-200',
-      HALF_DAY: 'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
-      ABSENT: 'bg-red-50 text-red-700 ring-1 ring-red-200',
-      PRESENT: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-      COMPLETED: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-      IN: 'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',
-      OUT: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-    };
-    return map[status] || 'bg-slate-100 text-slate-500 ring-1 ring-slate-200';
+  const statusPill=(s)=>{
+    const map={LATE:'bg-amber-50 text-amber-700 ring-1 ring-amber-200',HALF_DAY:'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
+      FULL_CUT:'bg-red-100 text-red-700 ring-1 ring-red-300',ABSENT:'bg-red-50 text-red-700 ring-1 ring-red-200',
+      PRESENT:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',COMPLETED:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      IN:'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',OUT:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'};
+    return map[s]||'bg-slate-100 text-slate-500 ring-1 ring-slate-200';
   };
+
+  // Merge registered employees with any biometric punch records from machine
+  const allDisplayEmployees = React.useMemo(() => {
+    const map = new Map();
+    (employeesList || []).forEach(e => {
+      if (e && e.id) map.set(String(e.id), { ...e });
+    });
+    
+    (allRecords || []).forEach(r => {
+      const eid = String(r.employeeId || r.employee_id || r.emp_id || '');
+      if (eid && !map.has(eid)) {
+        map.set(eid, {
+          id: eid,
+          name: r.employee_name || `Employee ${eid}`,
+          employee_code: r.emp_id || `EMP-${eid}`,
+          monthly_salary: 0,
+          isBiometricAuto: true
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [employeesList, allRecords]);
+
+  const selectedEmp = React.useMemo(() => {
+    if (!selectedEmployeeId) return null;
+    return allDisplayEmployees.find(e => String(e.id) === String(selectedEmployeeId)) || null;
+  }, [selectedEmployeeId, allDisplayEmployees]);
+
+  const singleEmpRecords = React.useMemo(() => {
+    if (!selectedEmp) return [];
+    const id = String(selectedEmp.id || '');
+    const code = String(selectedEmp.employee_code || '');
+    const name = (selectedEmp.name || '').trim().toLowerCase();
+
+    return (allRecords || []).filter(r => {
+      const rId = String(r.employeeId || r.employee_id || '');
+      const rEmpId = String(r.emp_id || '');
+      const rName = (r.employee_name || '').trim().toLowerCase();
+      return rId === id || (code && rEmpId === code) || rEmpId === id || (name && rName && rName === name);
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [selectedEmp, allRecords]);
+
+  const displayedSingleRecords = React.useMemo(() => {
+    if (!filterDate) return singleEmpRecords;
+    return singleEmpRecords.filter(r => formatLocalDate(r.date) === filterDate);
+  }, [singleEmpRecords, filterDate]);
+
+  // Single Employee summary calculations
+  const singleSummary = React.useMemo(() => {
+    if (!selectedEmp) return null;
+    return singleEmpRecords.reduce((acc, rec) => {
+      const st = (rec.status || rec.attendance_status || '').toString().toUpperCase();
+      const ded = computeDeduction(selectedEmp, rec);
+      acc.totalDays++;
+      acc.totalFines += (ded.amount || 0);
+      if (st === 'LATE') acc.late++;
+      else if (st === 'HALF_DAY') acc.halfDay++;
+      else if (['COMPLETED', 'IN', 'OUT', 'PRESENT'].includes(st)) acc.onTime++;
+      return acc;
+    }, { totalDays: 0, onTime: 0, late: 0, halfDay: 0, totalFines: 0 });
+  }, [selectedEmp, singleEmpRecords]);
+
+  const filteredEmployees = allDisplayEmployees
+    .filter(e => (e.name || '').toLowerCase().includes(searchTerm.trim().toLowerCase()) || (e.employee_code || '').toLowerCase().includes(searchTerm.trim().toLowerCase()))
+    .filter(e => !selectedEmployeeId || String(e.id) === String(selectedEmployeeId));
+
+  const summary = filteredEmployees.reduce((s, emp) => {
+    const rec = getEmployeeRecord(emp);
+    const st = (rec.status || rec.attendance_status || '').toString().toUpperCase();
+    s.total++;
+    if (st === 'LATE') s.late++;
+    else if (st === 'HALF_DAY') s.halfDay++;
+    else if (['FULL_CUT', 'ABSENT'].includes(st) || (!rec.date && filterDate)) s.absent++;
+    else if (['COMPLETED', 'IN', 'OUT', 'PRESENT'].includes(st)) s.onTime++;
+    return s;
+  }, { total: 0, onTime: 0, late: 0, halfDay: 0, absent: 0 });
 
   const clockDigits = clockNow.toLocaleTimeString('en-GB', { hour12: false });
 
   return (
     <div className="min-h-screen bg-[#F6F5FB] p-4 md:p-8">
       <div className="mx-auto max-w-7xl">
-
-        {/* Page header — matches the dashboard's plain header + live pill, no heavy banner */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-violet-500">
-              HR · Monthly Ledger
-            </p>
-            <h1 className="mt-1 text-3xl font-bold text-slate-800">Attendance</h1>
+            <p className="text-xs font-semibold uppercase tracking-widest text-violet-500">HR · Attendance Ledger</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-800">
+              {selectedEmp ? `${selectedEmp.name}'s Attendance` : 'Attendance Management'}
+            </h1>
             <p className="mt-1 text-sm text-slate-500">
-              Every check-in, check-out and fine, entered against the day it happened.
+              {selectedEmp
+                ? `Showing complete month punch history for ${selectedEmp.name} (${selectedEmp.employee_code || `EMP-${selectedEmp.id}`})`
+                : 'Every check-in, check-out, fine and biometric punch entered against the day it happened.'}
             </p>
           </div>
-
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-200">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"/>
               </span>
               Live · {clockDigits}
             </span>
-            <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-500 ring-1 ring-slate-200">
+            <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 shadow-2xs">
               {monthNames[selectedMonth]} {selectedYear}
             </span>
+            {isAdmin && (
+              <button
+                onClick={() => setShowMachineSettings(v => !v)}
+                className="flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-violet-600 transition active:scale-95"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                Rules & Machine Settings
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Summary cards — same card language as the dashboard's stat tiles */}
-        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {[
-            { label: 'Entries today', value: attendanceSummary.total, accent: 'text-slate-800' },
-            { label: 'On time', value: attendanceSummary.onTime, accent: 'text-emerald-600' },
-            { label: 'Late arrivals', value: attendanceSummary.late, accent: 'text-amber-600' },
-            { label: 'Half-day', value: attendanceSummary.halfDay, accent: 'text-rose-600' },
-            { label: 'Absent', value: attendanceSummary.absent, accent: 'text-red-600' },
-          ].map((s) => (
-            <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <p className="text-xs font-medium text-slate-400">{s.label}</p>
-              <p className={`mt-2 text-2xl font-bold ${s.accent}`}>{s.value}</p>
-            </div>
-          ))}
-        </div>
+        {/* ── Admin Master Timing Rules & Machine Settings Modal Popup ── */}
+        {isAdmin && showMachineSettings && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+            <div className="relative w-full max-w-3xl bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-8 my-8 space-y-6 max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-600 shadow-inner">
+                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-800">Attendance Timing & Machine Settings</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">Office rules, late fines & biometric hardware configuration</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowMachineSettings(false)}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-red-50 hover:text-red-500 transition"
+                >
+                  ✕
+                </button>
+              </div>
 
-        {/* Filter toolbar */}
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-            <div className="lg:col-span-2 space-y-1.5">
-              <label className="block text-xs font-medium text-slate-400">
-                Search employee
-              </label>
+              {/* Section 1: Office Timing & Fine Rules */}
+              <div className="space-y-3">
+                <p className="text-xs font-black uppercase tracking-wider text-slate-400">Section 1 · Office Timing & Fine Rules</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">On-Time Arrival (Limit)</label>
+                    <input
+                      type="time"
+                      value={machineConfig.onTimeLimit || '09:35'}
+                      onChange={e => setMachineConfig(c => ({ ...c, onTimeLimit: e.target.value }))}
+                      className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-violet-500"
+                    />
+                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">✓ Before this = No fine</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Late Boundary (Time)</label>
+                    <input
+                      type="time"
+                      value={machineConfig.lateLimit || '11:00'}
+                      onChange={e => setMachineConfig(c => ({ ...c, lateLimit: e.target.value }))}
+                      className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-violet-500"
+                    />
+                    <span className="text-[10px] text-amber-600 font-semibold mt-1 block">⚠️ Late fine applies till this time</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Late Fine Amount (₹)</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-xs text-slate-400 font-bold">₹</span>
+                      <input
+                        type="number"
+                        value={machineConfig.lateFineAmount ?? 50}
+                        onChange={e => setMachineConfig(c => ({ ...c, lateFineAmount: Number(e.target.value) }))}
+                        className="w-full rounded-lg bg-white border border-slate-200 pl-7 pr-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-violet-500"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-1 block">Default: ₹50 / day late</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Early Exit Threshold</label>
+                    <input
+                      type="time"
+                      value={machineConfig.earlyOutLimit || '13:00'}
+                      onChange={e => setMachineConfig(c => ({ ...c, earlyOutLimit: e.target.value }))}
+                      className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-violet-500"
+                    />
+                    <span className="text-[10px] text-rose-500 font-semibold mt-1 block">✕ Exit before this = Full Cut</span>
+                  </div>
+
+                  <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">Full Day Checkout</label>
+                    <input
+                      type="time"
+                      value={machineConfig.fullDayOutLimit || '17:00'}
+                      onChange={e => setMachineConfig(c => ({ ...c, fullDayOutLimit: e.target.value }))}
+                      className="w-full rounded-lg bg-white border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-violet-500"
+                    />
+                    <span className="text-[10px] text-emerald-600 font-semibold mt-1 block">✓ Full Day marked on/after this</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Section 2: Biometric Hardware Setup */}
+              <div className="space-y-3 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-400">Section 2 · Biometric Machine</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Connect to ZKTeco / eSSL / Identix hardware</p>
+                  </div>
+                  <label className="relative inline-flex cursor-pointer items-center">
+                    <input
+                      type="checkbox"
+                      checked={machineConfig.enabled}
+                      onChange={e => setMachineConfig(c => ({ ...c, enabled: e.target.checked }))}
+                      className="peer sr-only"
+                    />
+                    <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-violet-600 peer-checked:after:translate-x-full peer-focus:outline-none" />
+                    <span className="ml-2 text-xs font-bold text-slate-700">{machineConfig.enabled ? 'Enabled' : 'Disabled'}</span>
+                  </label>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                  <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Brand</label>
+                    <select
+                      value={machineConfig.brand || 'Identix'}
+                      onChange={e => setMachineConfig(c => ({ ...c, brand: e.target.value }))}
+                      className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                    >
+                      <option>Identix</option>
+                      <option>ZKTeco</option>
+                      <option>eSSL</option>
+                      <option>Mantra</option>
+                      <option>Realtime</option>
+                    </select>
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">IP Address</label>
+                    <input
+                      value={machineConfig.ip}
+                      onChange={e => setMachineConfig(c => ({ ...c, ip: e.target.value }))}
+                      placeholder="e.g. 192.168.1.201"
+                      className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Port</label>
+                    <input
+                      type="number"
+                      value={machineConfig.port}
+                      onChange={e => setMachineConfig(c => ({ ...c, port: Number(e.target.value) }))}
+                      className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div className="bg-white p-3 rounded-xl border border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-500 mb-1">Sync (Mins)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="60"
+                      value={machineConfig.syncIntervalMinutes}
+                      onChange={e => setMachineConfig(c => ({ ...c, syncIntervalMinutes: Number(e.target.value) }))}
+                      className="w-full rounded-lg bg-slate-50 border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800 outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {machineMsg && (
+                <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${machineMsg.startsWith('✅') ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'}`}>
+                  <span>{machineMsg}</span>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  {machineConfig.enabled && machineConfig.ip && (
+                    <>
+                      <button
+                        onClick={testMachineConnection}
+                        disabled={machineBusy}
+                        className="rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 px-4 py-2.5 text-xs font-bold text-slate-700 transition disabled:opacity-50"
+                      >
+                        ⚡ Test Connection
+                      </button>
+                      <button
+                        onClick={syncMachineNow}
+                        disabled={machineBusy}
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white transition shadow-sm disabled:opacity-50"
+                      >
+                        🔄 Sync Machine Now
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowMachineSettings(false)}
+                    className="rounded-xl bg-slate-100 hover:bg-slate-200 px-4 py-2.5 text-xs font-bold text-slate-600 transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveMachineConfig}
+                    disabled={machineBusy}
+                    className="rounded-xl bg-violet-600 hover:bg-violet-700 px-6 py-2.5 text-xs font-bold text-white shadow-md hover:shadow transition disabled:opacity-50"
+                  >
+                    {machineBusy ? 'Saving...' : 'Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SUMMARY KPI CARDS */}
+        {selectedEmp ? (
+          <div className="mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-white p-5 shadow-xs">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3.5">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 text-white font-black text-sm shadow-md">
+                  {initials(selectedEmp.name)}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-black text-slate-900">{selectedEmp.name}</h2>
+                    <span className="rounded-md bg-violet-100 text-violet-700 px-2 py-0.5 font-mono text-xs font-bold">
+                      {selectedEmp.employee_code || `EMP-${selectedEmp.id}`}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Monthly Salary: {selectedEmp.monthly_salary ? `₹${Number(selectedEmp.monthly_salary).toLocaleString('en-IN')}` : 'N/A'} · Rate: ₹{(Number(selectedEmp.monthly_salary || 0)/30).toFixed(0)}/day
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setSelectedEmployeeId(''); setSearchTerm(''); }}
+                className="self-start sm:self-auto rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition shadow-2xs"
+              >
+                ← Back to All Employees
+              </button>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-4 border-t border-violet-100/80">
+              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
+                <p className="text-[11px] font-bold text-slate-400 uppercase">Days Recorded</p>
+                <p className="mt-1 text-xl font-black text-slate-900">{singleSummary?.totalDays || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
+                <p className="text-[11px] font-bold text-slate-400 uppercase">On Time</p>
+                <p className="mt-1 text-xl font-black text-emerald-600">{singleSummary?.onTime || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
+                <p className="text-[11px] font-bold text-slate-400 uppercase">Late Arrivals</p>
+                <p className="mt-1 text-xl font-black text-amber-600">{singleSummary?.late || 0}</p>
+              </div>
+              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
+                <p className="text-[11px] font-bold text-slate-400 uppercase">Total Late Fines</p>
+                <p className="mt-1 text-xl font-black text-rose-600">₹{(singleSummary?.totalFines || 0).toFixed(2)}</p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+            {[{label:'Total',value:summary.total,accent:'text-slate-800'},{label:'On time',value:summary.onTime,accent:'text-emerald-600'},{label:'Late',value:summary.late,accent:'text-amber-600'},{label:'Half-day',value:summary.halfDay,accent:'text-rose-600'},{label:'Absent/Cut',value:summary.absent,accent:'text-red-600'}].map(s=>(
+              <div key={s.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-medium text-slate-400">{s.label}</p>
+                <p className={`mt-2 text-2xl font-bold ${s.accent}`}>{s.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ── FILTER & CALENDAR BAR ── */}
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-600">Search Employee</label>
               <input
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Type a name…"
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                onChange={e => setSearchTerm(e.target.value)}
+                placeholder="Type name or code…"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-800 outline-none focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100"
               />
             </div>
+
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-400">
-                Employee
-              </label>
+              <label className="block text-xs font-bold text-slate-600">Select Employee (Single View)</label>
               <select
                 value={selectedEmployeeId}
-                onChange={(e) => setSelectedEmployeeId(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                onChange={e => setSelectedEmployeeId(e.target.value)}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100"
               >
-                <option value="">All employees</option>
-                {employeesList.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
+                <option value="">All Employees (Overview)</option>
+                {allDisplayEmployees.map(e => (
+                  <option key={e.id} value={e.id}>
+                    {e.name} {e.employee_code ? `(${e.employee_code})` : ''}
+                  </option>
                 ))}
               </select>
             </div>
+
             <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-400">
-                Date
-              </label>
-              <input
-                type="date"
-                value={filterDate || ''}
-                onChange={(e) => setFilterDate(e.target.value || null)}
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="block text-xs font-medium text-slate-400">
-                Day
-              </label>
-              <select
-                value={dayFilter}
-                onChange={(e) => setDayFilter(e.target.value)}
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-              >
-                <option value="">All days</option>
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <label className="block text-xs font-bold text-slate-600">Calendar Date Filter</label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="date"
+                  value={filterDate || ''}
+                  onChange={e => {
+                    const val = e.target.value || null;
+                    setFilterDate(val);
+                    if (val) {
+                      const d = new Date(val);
+                      if (!Number.isNaN(d.getTime())) {
+                        setSelectedMonth(d.getMonth());
+                        setSelectedYear(d.getFullYear());
+                      }
+                    }
+                  }}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const todayStr = new Date().toISOString().slice(0, 10);
+                    setFilterDate(todayStr);
+                    setSelectedMonth(new Date().getMonth());
+                    setSelectedYear(new Date().getFullYear());
+                  }}
+                  className="shrink-0 rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 text-[11px] font-bold text-slate-700 hover:bg-slate-200 transition"
+                  title="Filter to today"
+                >
+                  Today
+                </button>
+              </div>
             </div>
           </div>
 
-          {(searchTerm || filterDate || dayFilter || selectedEmployeeId) && (
-            <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-              <p className="text-xs text-slate-400">Filters applied — showing a subset of the register.</p>
+          {(searchTerm || filterDate || selectedEmployeeId) && (
+            <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-3">
+              <p className="text-xs text-slate-400 font-medium">
+                Active filter: {selectedEmp ? `Viewing ${selectedEmp.name}` : ''} {filterDate ? `· Date: ${filterDate}` : '· Full Month'}
+              </p>
               <button
-                onClick={() => { setSearchTerm(''); setFilterDate(null); setDayFilter(''); setSelectedEmployeeId(''); }}
-                className="text-xs font-semibold text-violet-600 hover:text-violet-800"
+                type="button"
+                onClick={() => { setSearchTerm(''); setFilterDate(null); setSelectedEmployeeId(''); }}
+                className="text-xs font-bold text-violet-600 hover:text-violet-800"
               >
-                Clear filters
+                Reset All Filters
               </button>
             </div>
           )}
         </div>
 
-        {/* Register table */}
+        {/* ── ATTENDANCE DATA TABLE ── */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[980px] border-collapse text-sm">
+            <table className="w-full min-w-[1000px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                  <th className="w-12 px-4 py-3 whitespace-nowrap">No.</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Employee</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Salary / day</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Fine</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Day</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Date</th>
-                  <th className="px-4 py-3 whitespace-nowrap">In</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Out</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Hours</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Event</th>
-                  <th className="px-4 py-3 whitespace-nowrap">Attendance</th>
-                  <th className="px-4 py-3 whitespace-nowrap text-right">Action</th>
+                  <th className="w-10 px-4 py-3">No.</th>
+                  <th className="px-4 py-3">Employee</th>
+                  <th className="px-4 py-3">Salary/Day</th>
+                  <th className="px-4 py-3">Fine / Cut</th>
+                  <th className="px-4 py-3">Day</th>
+                  <th className="px-4 py-3">Date</th>
+                  <th className="px-4 py-3">In</th>
+                  <th className="px-4 py-3">Out</th>
+                  <th className="px-4 py-3">Hours</th>
+                  <th className="px-4 py-3">Mode</th>
+                  <th className="px-4 py-3">Status</th>
+                  {isAdmin && <th className="px-4 py-3 text-right">⚙</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {employeesList
-                  .filter((emp) => emp.name.toLowerCase().includes(searchTerm.trim().toLowerCase()))
-                  .filter((emp) => (!selectedEmployeeId ? true : String(emp.id) === String(selectedEmployeeId)))
-                  .filter((emp) => {
-                    const empRecords = allRecords.filter(r => String(r.employeeId || r.employee_id) === String(emp.id));
-                    if (filterDate) return true;
-                    if (dayFilter && !empRecords.some(r => getDayName(r.date) === dayFilter)) return false;
-                    return true;
-                  })
-                  .map((emp, idx) => {
-                    const empRecords = allRecords.filter(r => String(r.employeeId || r.employee_id) === String(emp.id));
-                    const rec = filterDate
-                      ? empRecords.find(r => formatLocalDate(r.date) === filterDate) || {}
-                      : empRecords[0] || {};
-                    const rawCheckIn = rec.checkIn || rec.check_in || '';
-                    const checkInValue = rawCheckIn;
-                    const checkOutValue = rec.checkOut || rec.check_out || '';
-                    const hours = checkInValue && checkOutValue ? calculateWorkHours(checkInValue, checkOutValue, rec.date) : '--';
-                    const actorRole = getActorRole();
-                    const isLocked = rec.mode === 'Biometric' || rec.mode === 'GPS' || (rec.markedBy && rec.markedBy !== actorRole);
-                    const loading = loadingMap[emp.id];
-                    const eventStatus = getEventStatus(rec);
-                    const attendanceStatus = getAttendanceLabel(rec);
-                    const ded = computeDeduction(emp, rec);
-
+                {/* ── 1. SINGLE EMPLOYEE SELECTED: DISPLAY FULL MONTH ROWS ── */}
+                {selectedEmp ? (
+                  displayedSingleRecords.map((rec, idx) => {
+                    const ci = rec.checkIn || rec.check_in || '';
+                    const co = rec.checkOut || rec.check_out || '';
+                    const hours = ci && co ? calculateWorkHours(ci, co, rec.date) : '--';
+                    const status = getAttendanceLabel(rec);
+                    const ded = computeDeduction(selectedEmp, rec);
                     return (
                       <tr
-                        key={emp.id}
-                        className={`border-l-4 bg-white ${statusFlag(rec.status || rec.attendance_status || attendanceStatus)} transition-colors even:bg-slate-50/50 hover:bg-violet-50/40`}
+                        key={rec.id || idx}
+                        className={`border-l-4 bg-white ${statusFlag(rec.status || rec.attendance_status || status)} transition-colors even:bg-slate-50/50 hover:bg-violet-50/30`}
                       >
-                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-400">{String(idx + 1).padStart(2, '0')}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-400">
+                          {String(idx + 1).padStart(2, '0')}
+                        </td>
                         <td className="px-4 py-3.5">
                           <div className="flex items-center gap-3">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-[11px] font-semibold text-white">
-                              {initials(emp.name)}
+                              {initials(selectedEmp.name)}
                             </div>
-                            <span className="whitespace-nowrap font-medium text-slate-800">{emp.name}</span>
+                            <div>
+                              <span className="whitespace-nowrap font-medium text-slate-800 block">{selectedEmp.name}</span>
+                              <span className="text-[10px] font-mono text-slate-400 block">{selectedEmp.employee_code || `EMP-${selectedEmp.id}`}</span>
+                            </div>
                           </div>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-500">
-                          {emp.monthly_salary ? `₹${(Number(emp.monthly_salary) / 30).toFixed(2)}`
-                            : emp.monthlySalary ? `₹${(Number(emp.monthlySalary) / 30).toFixed(2)}`
-                            : '—'}
+                          {selectedEmp.monthly_salary ? `Rs.${(Number(selectedEmp.monthly_salary) / 30).toFixed(0)}/day` : '--'}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5">
-                          {!ded || ded.amount === 0 ? (
+                          {ded.amount === 0 ? (
                             <span className="text-xs font-medium text-emerald-600">No fine</span>
                           ) : (
-                            <span className="font-mono text-xs font-semibold text-rose-600">−₹{ded.amount}</span>
+                            <span className="font-mono text-xs font-semibold text-rose-600">
+                              -Rs.{ded.amount} <span className="font-normal text-rose-400 text-[10px]">({ded.type.replace('_', ' ')})</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-500">{getDayName(rec.date)}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-bold text-slate-700">{formatLocalDate(rec.date) || '--'}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-bold text-slate-700">{ci || '--:--'}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-bold text-slate-700">{co || '--:--'}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-semibold text-indigo-700">{hours}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            (rec.mode === 'Biometric' || rec.mode === 'biometric') ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' :
+                            rec.mode === 'Admin' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
+                            'bg-slate-50 text-slate-500'
+                          }`}>
+                            {(rec.mode === 'Biometric' || rec.mode === 'biometric') ? '⚡ Biometric' : rec.mode || '--'}
+                          </span>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusPill(status)}`}>
+                            {status === '--' ? 'Not marked' : status.replace('_', ' ')}
+                          </span>
+                        </td>
+                        {isAdmin && (
+                          <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                            <button
+                              onClick={() => openOverride(selectedEmp, rec)}
+                              className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-slate-100 text-slate-400 hover:bg-violet-100 hover:text-violet-600 transition"
+                              title="Adjust record"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                              </svg>
+                            </button>
+                          </td>
+                        )}
+                        {!isAdmin && <td></td>}
+                      </tr>
+                    );
+                  })
+                ) : (
+                  /* ── 2. ALL EMPLOYEES OVERVIEW ── */
+                  filteredEmployees.map((emp, idx) => {
+                    const rec = getEmployeeRecord(emp);
+                    const ci = rec.checkIn || rec.check_in || '';
+                    const co = rec.checkOut || rec.check_out || '';
+                    const hours = ci && co ? calculateWorkHours(ci, co, rec.date) : '--';
+                    const status = getAttendanceLabel(rec);
+                    const ded = computeDeduction(emp, rec);
+                    return (
+                      <tr
+                        key={emp.id}
+                        className={`border-l-4 bg-white ${statusFlag(rec.status || rec.attendance_status || status)} transition-colors even:bg-slate-50/50 hover:bg-violet-50/30`}
+                      >
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-400">
+                          {String(idx + 1).padStart(2, '0')}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedEmployeeId(String(emp.id))}
+                            className="flex items-center gap-3 text-left group"
+                            title="Click to view full month ledger for this employee"
+                          >
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-600 to-indigo-600 text-[11px] font-semibold text-white">
+                              {initials(emp.name)}
+                            </div>
+                            <div>
+                              <span className="whitespace-nowrap font-medium text-slate-800 group-hover:text-violet-600 transition-colors block">
+                                {emp.name}
+                              </span>
+                              {emp.employee_code && (
+                                <span className="text-[10px] font-mono text-slate-400 block">{emp.employee_code}</span>
+                              )}
+                            </div>
+                          </button>
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-500">
+                          {emp.monthly_salary ? `Rs.${(Number(emp.monthly_salary) / 30).toFixed(0)}/day` : '--'}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3.5">
+                          {ded.amount === 0 ? (
+                            <span className="text-xs font-medium text-emerald-600">No fine</span>
+                          ) : (
+                            <span className="font-mono text-xs font-semibold text-rose-600">
+                              -Rs.{ded.amount} <span className="font-normal text-rose-400 text-[10px]">({ded.type.replace('_', ' ')})</span>
+                            </span>
                           )}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5 text-xs text-slate-500">{getDayName(rec.date)}</td>
                         <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-500">{formatLocalDate(rec.date) || '--'}</td>
-                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-500">{rec.checkIn || rec.check_in || '--:--'}</td>
-                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs text-slate-500">{rec.checkOut || rec.check_out || '--:--'}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-bold text-slate-700">{ci || '--:--'}</td>
+                        <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-bold text-slate-700">{co || '--:--'}</td>
                         <td className="whitespace-nowrap px-4 py-3.5 font-mono text-xs font-semibold text-indigo-700">{hours}</td>
                         <td className="whitespace-nowrap px-4 py-3.5">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusPill(eventStatus)}`}>
-                            {eventStatus}
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                            (rec.mode === 'Biometric' || rec.mode === 'biometric') ? 'bg-violet-50 text-violet-700 ring-1 ring-violet-200' :
+                            rec.mode === 'Admin' ? 'bg-amber-50 text-amber-700 ring-1 ring-amber-200' :
+                            'bg-slate-50 text-slate-500'
+                          }`}>
+                            {(rec.mode === 'Biometric' || rec.mode === 'biometric') ? '⚡ Biometric' : rec.mode || '--'}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3.5">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusPill(attendanceStatus)}`}>
-                            {attendanceStatus === '--' ? 'Not marked' : attendanceStatus}
+                          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusPill(status)}`}>
+                            {status === '--' ? 'Not marked' : status.replace('_', ' ')}
                           </span>
                         </td>
-                        <td className="whitespace-nowrap px-4 py-3.5 text-right">
-                          <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1.5 text-[11px] font-semibold text-slate-500">
-                            Biometric only
-                          </span>
-                        </td>
+                        {isAdmin && (
+                          <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                            <button
+                              onClick={() => openOverride(emp, rec)}
+                              className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-slate-100 text-slate-400 hover:bg-violet-100 hover:text-violet-600 transition"
+                              title="Adjust record"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                              </svg>
+                            </button>
+                          </td>
+                        )}
+                        {!isAdmin && <td></td>}
                       </tr>
                     );
-                  })}
+                  })
+                )}
 
-                {employeesList.length === 0 && (
+                {((selectedEmp && displayedSingleRecords.length === 0) || (!selectedEmp && filteredEmployees.length === 0)) && (
                   <tr>
-                    <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-400">
-                      No employees on record yet.
+                    <td colSpan={12} className="px-4 py-12 text-center text-sm text-slate-400 font-medium">
+                      No attendance records found for the selected criteria.
                     </td>
                   </tr>
                 )}
@@ -627,11 +922,71 @@ export default function Attendance() {
             </table>
           </div>
         </div>
-
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Refreshes automatically every 5 seconds · manual entries sync once the server confirms them.
-        </p>
+        <p className="mt-4 text-center text-xs text-slate-400">Refreshes automatically · Click on any employee name to see their full month ledger.</p>
       </div>
+
+      {overrideModal&&(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-xs p-4" onMouseDown={()=>setOverrideModal(null)}>
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden" onMouseDown={e=>e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-indigo-50 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500">Admin Override</p>
+                <h3 className="text-base font-black text-slate-900 mt-0.5">{overrideModal.emp.name}</h3>
+                <p className="text-xs text-slate-400">Set timing manually — auto-calculates fine</p>
+              </div>
+              <button onClick={()=>setOverrideModal(null)} className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-slate-400 hover:bg-red-50 hover:text-red-500 border border-slate-200 transition">
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Date</label>
+                <input type="date" value={overrideForm.date} onChange={e=>setOverrideForm(f=>({...f,date:e.target.value}))}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Check-In Time</label>
+                  <input type="time" value={overrideForm.check_in} onChange={e=>setOverrideForm(f=>({...f,check_in:e.target.value}))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1">Check-Out Time</label>
+                  <input type="time" value={overrideForm.check_out} onChange={e=>setOverrideForm(f=>({...f,check_out:e.target.value}))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
+                </div>
+              </div>
+              {overrideForm.check_in&&(()=>{
+                const mockRec={checkIn:overrideForm.check_in,checkOut:overrideForm.check_out,date:overrideForm.date};
+                const d=computeDeduction(overrideModal.emp,mockRec);
+                const label=d.type==='NONE'?'Full Day':'d.type=HALF_DAY'?'Half Day':d.type.replace('_',' ');
+                return(
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 p-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Live Preview</p>
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusPill(d.type==='NONE'?'COMPLETED':d.type)}`}>
+                        {d.type==='NONE'?'Full Day':d.type.replace('_',' ')}
+                      </span>
+                      <span className={`font-mono text-sm font-bold ${d.amount===0?'text-emerald-600':'text-rose-600'}`}>
+                        {d.amount===0?'No fine':`-Rs.${d.amount}`}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
+              {overrideMsg&&<p className={`text-xs font-semibold ${overrideMsg.includes('Saved')||overrideMsg.includes('success')?'text-emerald-600':'text-red-600'}`}>{overrideMsg}</p>}
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
+              <button onClick={()=>setOverrideModal(null)} className="rounded-xl px-5 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-200 transition">Cancel</button>
+              <button onClick={handleOverrideSave} disabled={overrideSaving||!overrideForm.date}
+                className="flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-violet-700 transition active:scale-95 disabled:opacity-50">
+                {overrideSaving?'Saving...':'Save Override'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

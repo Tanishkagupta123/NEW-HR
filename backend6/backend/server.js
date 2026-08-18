@@ -56,6 +56,13 @@ app.use('/hiring', hiringRoutes);
 // KPI routes
 const kpiRoutes = require('./routes/kpiRoutes');
 app.use('/kpi', kpiRoutes);
+// Biometric machine routes
+const biometricRoutes = require('./routes/biometricRoutes');
+app.use('/biometric', biometricRoutes);
+// Start auto-sync if machine is configured
+const { startAutoSync } = require('./controllers/biometricController');
+startAutoSync();
+
 // HR Assistant routes
 const hrAssistantRoutes = require('./routes/hrAssistantRoutes');
 app.use('/hr-assistant', hrAssistantRoutes);
