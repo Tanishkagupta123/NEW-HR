@@ -27,4 +27,13 @@ router.get('/all', (req, res) => {
     });
 });
 
+// 3. Delete Payroll
+router.delete('/delete/:id', (req, res) => {
+    const id = req.params.id;
+    db.query("DELETE FROM payroll WHERE id = ?", [id], (err, result) => {
+        if(err) return res.status(500).json(err);
+        return res.json({ message: "Payroll Deleted!" });
+    });
+});
+
 module.exports = router;

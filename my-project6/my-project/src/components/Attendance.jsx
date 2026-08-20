@@ -6,6 +6,7 @@ import { useOutletContext } from 'react-router-dom';
 export default function Attendance() {
   const context = useOutletContext() || {};
   const [localEmployees, setLocalEmployees] = useState([]);
+  const [holidays, setHolidays] = useState([]);
   const employeesList = (context.employeesList && context.employeesList.length > 0) ? context.employeesList : localEmployees;
 
   useEffect(() => {
@@ -14,6 +15,9 @@ export default function Attendance() {
         .then(res => { if (Array.isArray(res.data)) setLocalEmployees(res.data); })
         .catch(err => console.error("Error fetching employees in Attendance:", err));
     }
+    axios.get(`${API_BASE_URL}/holidays`)
+      .then(res => setHolidays(res.data || []))
+      .catch(err => console.error(err));
   }, [context.employeesList]);
 
   const [allRecords, setAllRecords]           = useState([]);
@@ -206,22 +210,61 @@ export default function Attendance() {
     return recs[0] || {};
   };
 
+  const isSunday = (dateStr) => {
+    if (!dateStr) return false;
+    const d = new Date(dateStr);
+    return d.getDay() === 0;
+  };
+
+  const isFutureDate = (dateStr) => {
+    if (!dateStr) return false;
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    return dateStr > todayStr;
+  };
+
+  const isHoliday = (dateStr) => {
+    if (!dateStr) return false;
+    return holidays.some(h => h.full_date === dateStr);
+  };
+
   const getAttendanceLabel = (rec) => {
-    if (!rec||(!rec.checkIn&&!rec.check_in&&!rec.checkOut&&!rec.check_out&&!rec.status&&!rec.attendance_status))
-      return filterDate?'ABSENT':'--';
+    if (!rec||(!rec.checkIn&&!rec.check_in&&!rec.checkOut&&!rec.check_out&&!rec.status&&!rec.attendance_status)) {
+      if (filterDate) {
+        if (isFutureDate(filterDate)) return 'UPCOMING';
+        if (isSunday(filterDate)) return 'SUNDAY';
+        return isHoliday(filterDate) ? 'HOLIDAY' : 'ABSENT';
+      }
+      return '--';
+    }
     const s=(rec.status||rec.attendance_status||'').toString().trim().toUpperCase();
     if(['COMPLETED','IN','OUT','PRESENT'].includes(s))return'PRESENT';
     if(['HALF_DAY','LATE','ABSENT','FULL_CUT'].includes(s))return s;
     if(rec.checkIn||rec.check_in)return'PRESENT';
-    return filterDate?'ABSENT':'--';
+    
+    if (filterDate) {
+      if (isFutureDate(filterDate)) return 'UPCOMING';
+      if (isSunday(filterDate)) return 'SUNDAY';
+      return isHoliday(filterDate) ? 'HOLIDAY' : 'ABSENT';
+    }
+    return '--';
   };
 
   const openOverride = (emp, rec) => {
-    const today=new Date().toISOString().slice(0,10);
+    const t = new Date();
+    const todayStr = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`;
+    const targetDate = formatLocalDate(rec.date) || (filterDate || todayStr);
+    
+    if (isFutureDate(targetDate)) {
+      alert("You cannot edit attendance for future dates!");
+      return;
+    }
+
     setOverrideForm({
       check_in:rec.checkIn||rec.check_in||'',
       check_out:rec.checkOut||rec.check_out||'',
-      date:formatLocalDate(rec.date)||today,
+      date:targetDate,
+      status_override:'AUTO'
     });
     setOverrideModal({emp,rec});
     setOverrideMsg('');
@@ -236,6 +279,7 @@ export default function Attendance() {
         date:overrideForm.date,
         check_in:overrideForm.check_in||null,
         check_out:overrideForm.check_out||null,
+        status_override:overrideForm.status_override||'AUTO'
       });
       if(res.data.success){
         setOverrideMsg('Saved!');
@@ -253,6 +297,9 @@ export default function Attendance() {
     if(s==='HALF_DAY')return'border-l-rose-400';
     if(s==='FULL_CUT'||s==='ABSENT')return'border-l-red-500';
     if(['PRESENT','COMPLETED','IN','OUT'].includes(s))return'border-l-emerald-400';
+    if(s==='HOLIDAY')return'border-l-indigo-400';
+    if(s==='SUNDAY')return'border-l-sky-400';
+    if(s==='UPCOMING')return'border-l-slate-300';
     return'border-l-slate-200';
   };
 
@@ -260,7 +307,10 @@ export default function Attendance() {
     const map={LATE:'bg-amber-50 text-amber-700 ring-1 ring-amber-200',HALF_DAY:'bg-rose-50 text-rose-700 ring-1 ring-rose-200',
       FULL_CUT:'bg-red-100 text-red-700 ring-1 ring-red-300',ABSENT:'bg-red-50 text-red-700 ring-1 ring-red-200',
       PRESENT:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',COMPLETED:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
-      IN:'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',OUT:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'};
+      IN:'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-200',OUT:'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200',
+      HOLIDAY:'bg-indigo-50 text-indigo-700 ring-1 ring-indigo-300',
+      SUNDAY:'bg-sky-50 text-sky-700 ring-1 ring-sky-300',
+      UPCOMING:'bg-slate-100 text-slate-500 ring-1 ring-slate-300'};
     return map[s]||'bg-slate-100 text-slate-500 ring-1 ring-slate-200';
   };
 
@@ -335,7 +385,7 @@ export default function Attendance() {
     s.total++;
     if (st === 'LATE') s.late++;
     else if (st === 'HALF_DAY') s.halfDay++;
-    else if (['FULL_CUT', 'ABSENT'].includes(st) || (!rec.date && filterDate)) s.absent++;
+    else if (['FULL_CUT', 'ABSENT'].includes(st) || (!rec.date && filterDate && !isHoliday(filterDate) && !isSunday(filterDate) && !isFutureDate(filterDate))) s.absent++;
     else if (['COMPLETED', 'IN', 'OUT', 'PRESENT'].includes(st)) s.onTime++;
     return s;
   }, { total: 0, onTime: 0, late: 0, halfDay: 0, absent: 0 });
@@ -357,21 +407,11 @@ export default function Attendance() {
                 : 'Every check-in, check-out, fine and biometric punch entered against the day it happened.'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-200">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"/>
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"/>
-              </span>
-              Live · {clockDigits}
-            </span>
-            <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 shadow-2xs">
-              {monthNames[selectedMonth]} {selectedYear}
-            </span>
+          <div className="flex items-center gap-2.5">
             {isAdmin && (
               <button
                 onClick={() => setShowMachineSettings(v => !v)}
-                className="flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-violet-600 transition active:scale-95"
+                className="flex items-center gap-1.5 rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-violet-600 transition active:scale-95 whitespace-nowrap"
               >
                 <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -380,6 +420,16 @@ export default function Attendance() {
                 Rules & Machine Settings
               </button>
             )}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-600 ring-1 ring-emerald-200 whitespace-nowrap">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"/>
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500"/>
+              </span>
+              Live · {clockDigits}
+            </span>
+            <span className="inline-flex items-center rounded-full bg-white px-3 py-1.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200 shadow-2xs whitespace-nowrap">
+              {monthNames[selectedMonth]} {selectedYear}
+            </span>
           </div>
         </div>
 
@@ -968,6 +1018,17 @@ export default function Attendance() {
                   <input type="time" value={overrideForm.check_out} onChange={e=>setOverrideForm(f=>({...f,check_out:e.target.value}))}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"/>
                 </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1">Status Override (Optional)</label>
+                <select value={overrideForm.status_override || 'AUTO'} onChange={e=>setOverrideForm(f=>({...f,status_override:e.target.value}))}
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100">
+                  <option value="AUTO">Auto-calculate from times</option>
+                  <option value="PRESENT">Present (No fine)</option>
+                  <option value="ABSENT">Absent (Full cut)</option>
+                  <option value="HALF_DAY">Half Day (Half cut)</option>
+                  <option value="LATE">Late (Late fine)</option>
+                </select>
               </div>
               {overrideForm.check_in&&(()=>{
                 const mockRec={checkIn:overrideForm.check_in,checkOut:overrideForm.check_out,date:overrideForm.date};

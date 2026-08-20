@@ -26,7 +26,7 @@ const SearchableSelect = ({ options, value, onChange, placeholder, error }) => {
               type="text" 
               autoFocus
               className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg outline-none text-sm"
-              placeholder="🔍 Search..."
+              placeholder="Search..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -100,6 +100,9 @@ export default function AddTask() {
       // 3. Single Employee Validation
       if (tasks.some(t => !t.assign_to)) {
         newErrors.single = "Please select an Employee!";
+      }
+      if (tasks.some(t => !t.dept)) {
+        newErrors.dept = "Please select a Department!";
       }
     }
 

@@ -345,7 +345,7 @@ const markAttendance = (req, res) => {
 };
 
 const adminOverrideAttendance = (req, res) => {
-  const { employee_id, date, check_in, check_out } = req.body;
+  const { employee_id, date, check_in, check_out, status_override } = req.body;
 
   if (!employee_id || !date) {
     return res.status(400).json({ success: false, message: 'employee_id and date are required' });
@@ -362,8 +362,22 @@ const adminOverrideAttendance = (req, res) => {
     const monthlySalary = parseFloat(empRows?.[0]?.monthly_salary || 0);
     const dailySalary = monthlySalary ? parseFloat((monthlySalary / 30).toFixed(2)) : 0;
 
-    const computed = computeAttendanceStatus(check_in || null, check_out || null, dailySalary);
-    const finalSalary = check_out ? Math.max(0, dailySalary - computed.lateFine) : 0;
+    let computed = computeAttendanceStatus(check_in || null, check_out || null, dailySalary);
+
+    if (status_override && status_override !== 'AUTO') {
+      computed.status = status_override;
+      if (status_override === 'ABSENT' || status_override === 'FULL_CUT') {
+        computed.lateFine = dailySalary;
+      } else if (status_override === 'HALF_DAY') {
+        computed.lateFine = +(dailySalary / 2).toFixed(2);
+      } else if (status_override === 'LATE') {
+        computed.lateFine = 50; // You can fetch from config if needed
+      } else {
+        computed.lateFine = 0; // PRESENT, COMPLETED, etc.
+      }
+    }
+
+    const finalSalary = check_out ? Math.max(0, dailySalary - computed.lateFine) : (status_override ? Math.max(0, dailySalary - computed.lateFine) : 0);
     const dayName = new Date(attendanceDate).toLocaleDateString('en-GB', { weekday: 'long' });
 
     const selectSql = 'SELECT * FROM attendance WHERE employee_id = ? AND `date` = ? LIMIT 1';
