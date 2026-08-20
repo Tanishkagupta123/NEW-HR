@@ -96,11 +96,11 @@ export default function AdminDashboard() {
 
   const handleOnboard = async () => {
     if (!employee.name.trim() || !employee.email.trim() || !employee.department || !employee.monthly_salary) {
-      alert("Please Name, Email, Department aur Monthly Salary zaroor bharein!");
+      alert("Please fill in the Name, Email, Department, and Monthly Salary!");
       return;
     }
     if (Number(employee.monthly_salary) <= 0) {
-      alert("Monthly Salary valid number hona chahiye.");
+      alert("Monthly Salary must be a valid number.");
       return;
     }
     try {
@@ -147,17 +147,27 @@ export default function AdminDashboard() {
     setTasks(newTasks);
   };
 
-  const submitAllTasks = async () => {
-    if (tasks.some(t => !t.client_name || !t.title)) {
-      alert("Please Project Name aur Title bharein!");
+  const submitAllTasks = async (customTasks) => {
+    const tasksToSubmit = customTasks || tasks;
+    
+    // Validation
+    const invalidTitle = tasksToSubmit.some(t => !t.title || !t.title.trim());
+    if (invalidTitle) {
+      alert("Please fill in the Task Title for all tasks!");
+      return;
+    }
+
+    const invalidClient = tasksToSubmit.some(t => t.task_type === 'Client Task' && (!t.client_name || !t.client_name.trim()));
+    if (invalidClient) {
+      alert("Please enter the Client Name for your Client Tasks!");
       return;
     }
     try {
-      await axios.post(`${API_BASE_URL}/tasks`, tasks);
+      await axios.post(`${API_BASE_URL}/tasks`, tasksToSubmit);
       alert("Tasks Successfully Submitted!");
       setTasks([createBlankTask()]);
       fetchData();
-    } catch (err) { alert("Submit nahi hua!"); }
+    } catch (err) { alert("Submission failed! Please try again."); }
   };
 
   const menuItems = [

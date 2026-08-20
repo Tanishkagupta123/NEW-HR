@@ -4,10 +4,12 @@ export default function GlobalPopup() {
   const [popup, setPopup] = useState(null); // { message, title, type: 'info'|'success'|'error' }
   const [promptState, setPromptState] = useState(null); // { message, defaultValue, resolve }
   const [promptInput, setPromptInput] = useState('');
+  const [confirmState, setConfirmState] = useState(null); // { message, resolve }
 
   useEffect(() => {
     const nativeAlert = window.alert;
     const nativePrompt = window.prompt;
+    const nativeConfirm = window.confirm;
 
     // Override window.alert
     window.alert = (message) => {
@@ -29,6 +31,13 @@ export default function GlobalPopup() {
       });
     };
 
+    // Override window.confirm
+    window.confirm = (message) => {
+      return new Promise((resolve) => {
+        setConfirmState({ message: String(message || 'Are you sure?'), resolve });
+      });
+    };
+
     window.showPopup = (message, type = 'info', title = '') => {
       const defaultTitle = type === 'error' ? 'Attention Required' : type === 'success' ? 'Success' : 'Notification';
       setPopup({ message: String(message || ''), title: title || defaultTitle, type });
@@ -37,6 +46,7 @@ export default function GlobalPopup() {
     return () => {
       window.alert = nativeAlert;
       window.prompt = nativePrompt;
+      window.confirm = nativeConfirm;
       delete window.showPopup;
     };
   }, []);
@@ -56,12 +66,22 @@ export default function GlobalPopup() {
     setPromptInput('');
   };
 
+  const handleConfirmSubmit = () => {
+    if (confirmState?.resolve) confirmState.resolve(true);
+    setConfirmState(null);
+  };
+
+  const handleConfirmCancel = () => {
+    if (confirmState?.resolve) confirmState.resolve(false);
+    setConfirmState(null);
+  };
+
   return (
     <>
       {/* ALERT POPUP */}
       {popup && (
         <div
-          className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-xs transition-opacity animate-in fade-in duration-150"
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm transition-opacity animate-in fade-in duration-150"
           onMouseDown={closePopup}
         >
           <div
@@ -91,7 +111,7 @@ export default function GlobalPopup() {
             </div>
 
             <div className="p-6 bg-white">
-              <p className="text-xs leading-relaxed text-slate-700 font-medium whitespace-pre-wrap">
+              <p className="text-sm leading-relaxed text-slate-700 font-medium whitespace-pre-wrap">
                 {popup.message}
               </p>
             </div>
@@ -101,9 +121,60 @@ export default function GlobalPopup() {
                 type="button"
                 onClick={closePopup}
                 autoFocus
-                className="w-full sm:w-auto min-w-24 rounded-xl bg-violet-600 px-6 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-violet-700 active:scale-95"
+                className="w-full sm:w-auto min-w-24 rounded-xl bg-violet-600 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-violet-700 active:scale-95"
               >
                 OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM MODAL */}
+      {confirmState && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-sm transition-opacity animate-in fade-in duration-150"
+          onMouseDown={handleConfirmCancel}
+        >
+          <div
+            onMouseDown={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-xl border border-slate-100 animate-in zoom-in-95 duration-150"
+          >
+            <div className="flex items-center justify-between border-b px-6 py-4.5 border-amber-100 bg-amber-50/60 text-amber-950">
+              <div className="flex items-center gap-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+                <h3 className="text-xs font-black uppercase tracking-wider">Please Confirm</h3>
+              </div>
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 bg-white">
+              <p className="text-sm leading-relaxed text-slate-700 font-medium whitespace-pre-wrap">
+                {confirmState.message}
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-slate-100 bg-slate-50/80 px-6 py-4">
+              <button
+                type="button"
+                onClick={handleConfirmCancel}
+                className="w-full sm:w-auto min-w-24 rounded-xl px-6 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                autoFocus
+                className="w-full sm:w-auto min-w-24 rounded-xl bg-amber-500 px-6 py-2.5 text-xs font-bold text-white shadow-sm transition hover:bg-amber-600 active:scale-95"
+              >
+                Confirm
               </button>
             </div>
           </div>

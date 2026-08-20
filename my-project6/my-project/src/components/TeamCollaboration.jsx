@@ -133,7 +133,8 @@ export default function TeamCollaboration({ defaultPanel = null }) {
   };
 
   const deleteNotice = async (id) => {
-    if (confirm('Kya aap sure hain ki aap ye notice delete karna chahte hain?')) {
+    const isConfirmed = await window.confirm('Kya aap sure hain ki aap ye notice delete karna chahte hain?');
+    if (isConfirmed) {
       try {
         const token = localStorage.getItem('token');
         await axios.delete(
@@ -223,7 +224,8 @@ export default function TeamCollaboration({ defaultPanel = null }) {
   };
 
   const deleteAnnouncement = async (id) => {
-    if (confirm('Kya aap sure hain ki aap ye announcement delete karna chahte hain?')) {
+    const isConfirmed = await window.confirm('Kya aap sure hain ki aap ye announcement delete karna chahte hain?');
+    if (isConfirmed) {
       try {
         const token = localStorage.getItem('token');
         await axios.delete(

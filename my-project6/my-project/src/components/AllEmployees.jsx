@@ -343,9 +343,6 @@ export default function AllEmployees() {
                   <div className="mt-4 flex flex-wrap items-center gap-1.5 text-[11px]">
                     <span className="rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-700">{item.department || 'General'}</span>
                     <span className="rounded-md bg-violet-50 px-2 py-0.5 font-bold text-violet-700 capitalize">{item.role_position || item.role || 'employee'}</span>
-                    {item.monthly_salary && (
-                      <span className="rounded-md bg-emerald-50 px-2 py-0.5 font-bold text-emerald-700">₹{Number(item.monthly_salary).toLocaleString('en-IN')}/mo</span>
-                    )}
                   </div>
                   <div className="mt-3 text-xs text-slate-500">
                     <p className="truncate font-medium" title={item.email}>{item.email || 'No email registered'}</p>
@@ -373,7 +370,6 @@ export default function AllEmployees() {
                   <th className="px-5 py-3.5">Employee</th>
                   <th className="px-5 py-3.5">Contact</th>
                   <th className="px-5 py-3.5">Department & Level</th>
-                  <th className="px-5 py-3.5">Salary</th>
                   <th className="px-5 py-3.5">KYC Documents</th>
                   <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
@@ -400,9 +396,6 @@ export default function AllEmployees() {
                       <td className="px-5 py-4">
                         <p className="font-bold text-slate-800">{item.department || 'General'}</p>
                         <p className="text-[11px] font-medium text-violet-600 capitalize">{item.role_position || item.role || 'employee'}</p>
-                      </td>
-                      <td className="px-5 py-4 font-bold text-slate-800">
-                        {item.monthly_salary ? `₹${Number(item.monthly_salary).toLocaleString('en-IN')}` : '-'}
                       </td>
                       <td className="px-5 py-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold ${isFullyVerified ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>

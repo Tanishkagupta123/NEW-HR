@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS tasks (
   minutes INT DEFAULT 0,
   priority VARCHAR(50) DEFAULT 'Normal',
   client_name VARCHAR(255),
+  group_id INT DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE SET NULL,
   FOREIGN KEY (assignee_id) REFERENCES employees(id) ON DELETE SET NULL
@@ -112,4 +113,20 @@ CREATE TABLE IF NOT EXISTS certificates (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   INDEX idx_recipient_email (recipient_email),
   INDEX idx_issued_date (issued_date)
+);
+
+-- Groups table for assigning tasks to a group of employees
+CREATE TABLE IF NOT EXISTS groups (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Junction table linking employees to groups (many-to-many)
+CREATE TABLE IF NOT EXISTS group_members (
+  group_id INT NOT NULL,
+  employee_id INT NOT NULL,
+  PRIMARY KEY (group_id, employee_id),
+  FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+  FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
 );

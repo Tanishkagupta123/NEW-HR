@@ -588,49 +588,62 @@ export default function Attendance() {
 
         {/* SUMMARY KPI CARDS */}
         {selectedEmp ? (
-          <div className="mb-6 rounded-3xl border border-violet-100 bg-gradient-to-r from-violet-500/10 via-indigo-500/5 to-white p-5 shadow-xs">
+          <div className="mb-6 rounded-2xl border border-violet-200/80 border-l-4 border-l-violet-600 bg-gradient-to-r from-violet-50/50 via-white to-indigo-50/30 p-5 shadow-xs">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3.5">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-600 text-white font-black text-sm shadow-md">
-                  {initials(selectedEmp.name)}
-                </div>
+                {selectedEmp.profile_pic ? (
+                  <img
+                    src={selectedEmp.profile_pic.startsWith('http') ? selectedEmp.profile_pic : `${API_BASE_URL}/${selectedEmp.profile_pic.replace(/^\/+/, '')}`}
+                    alt={selectedEmp.name}
+                    className="h-12 w-12 rounded-xl object-cover border border-violet-200 shadow-2xs"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-white font-bold text-base shadow-xs">
+                    {initials(selectedEmp.name)}
+                  </div>
+                )}
                 <div>
                   <div className="flex items-center gap-2">
-                    <h2 className="text-lg font-black text-slate-900">{selectedEmp.name}</h2>
-                    <span className="rounded-md bg-violet-100 text-violet-700 px-2 py-0.5 font-mono text-xs font-bold">
+                    <h2 className="text-lg font-bold text-slate-900">{selectedEmp.name}</h2>
+                    <span className="rounded-md bg-violet-100/80 text-violet-700 border border-violet-200 px-2 py-0.5 font-mono text-xs font-bold">
                       {selectedEmp.employee_code || `EMP-${selectedEmp.id}`}
                     </span>
+                    {selectedEmp.department && (
+                      <span className="rounded-md bg-slate-100 text-slate-700 px-2 py-0.5 text-xs font-semibold">
+                        {selectedEmp.department}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Monthly Salary: {selectedEmp.monthly_salary ? `₹${Number(selectedEmp.monthly_salary).toLocaleString('en-IN')}` : 'N/A'} · Rate: ₹{(Number(selectedEmp.monthly_salary || 0)/30).toFixed(0)}/day
+                    {selectedEmp.designation || 'Staff Member'} · Individual Attendance Ledger
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => { setSelectedEmployeeId(''); setSearchTerm(''); }}
-                className="self-start sm:self-auto rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2 text-xs font-bold text-slate-700 transition shadow-2xs"
+                className="self-start sm:self-auto rounded-xl border border-violet-200 bg-white hover:bg-violet-50 px-4 py-2 text-xs font-bold text-violet-700 transition shadow-2xs"
               >
-                ← Back to All Employees
+                ← View All Employees
               </button>
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-4 border-t border-violet-100/80">
-              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4 pt-4 border-t border-violet-100">
+              <div className="rounded-xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
                 <p className="text-[11px] font-bold text-slate-400 uppercase">Days Recorded</p>
-                <p className="mt-1 text-xl font-black text-slate-900">{singleSummary?.totalDays || 0}</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">{singleSummary?.totalDays || 0}</p>
               </div>
-              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
-                <p className="text-[11px] font-bold text-slate-400 uppercase">On Time</p>
-                <p className="mt-1 text-xl font-black text-emerald-600">{singleSummary?.onTime || 0}</p>
+              <div className="rounded-xl bg-emerald-50/80 p-3.5 border border-emerald-200/60 shadow-2xs">
+                <p className="text-[11px] font-bold text-emerald-700 uppercase">On Time</p>
+                <p className="mt-1 text-xl font-bold text-emerald-700">{singleSummary?.onTime || 0}</p>
               </div>
-              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
-                <p className="text-[11px] font-bold text-slate-400 uppercase">Late Arrivals</p>
-                <p className="mt-1 text-xl font-black text-amber-600">{singleSummary?.late || 0}</p>
+              <div className="rounded-xl bg-amber-50/80 p-3.5 border border-amber-200/60 shadow-2xs">
+                <p className="text-[11px] font-bold text-amber-700 uppercase">Late Arrivals</p>
+                <p className="mt-1 text-xl font-bold text-amber-700">{singleSummary?.late || 0}</p>
               </div>
-              <div className="rounded-2xl bg-white p-3.5 border border-slate-200/80 shadow-2xs">
-                <p className="text-[11px] font-bold text-slate-400 uppercase">Total Late Fines</p>
-                <p className="mt-1 text-xl font-black text-rose-600">₹{(singleSummary?.totalFines || 0).toFixed(2)}</p>
+              <div className="rounded-xl bg-rose-50/80 p-3.5 border border-rose-200/60 shadow-2xs">
+                <p className="text-[11px] font-bold text-rose-700 uppercase">Total Fines</p>
+                <p className="mt-1 text-xl font-bold text-rose-700">₹{(singleSummary?.totalFines || 0).toFixed(2)}</p>
               </div>
             </div>
           </div>
