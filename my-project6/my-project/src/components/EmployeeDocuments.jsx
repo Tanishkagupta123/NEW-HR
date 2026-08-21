@@ -50,7 +50,7 @@ const requiredKeys = {
   offer: ['candidateName', 'emailAddress', 'candidateAddress', 'position', 'department', 'employmentType', 'salaryPackage', 'joiningDate', 'reportingTime', 'reportingManager', 'offerValidTill'],
   internship: ['candidateName', 'emailAddress', 'position', 'department', 'joiningDate', 'internshipDuration', 'stipend', 'reportingManager', 'mentor'],
   joining: ['employeeName', 'emailAddress', 'employeeId', 'employeeAddress', 'designation', 'department', 'dateOfJoining', 'workLocation', 'reportingManager', 'employmentType', 'monthlySalary', 'reportingTime'],
-  experience: ['employeeName', 'designation', 'joiningDate', 'lastWorkingDate'],
+  experience: ['employeeName', 'emailAddress', 'designation', 'joiningDate', 'lastWorkingDate'],
   notice: ['employeeName', 'emailAddress', 'noticeStartDate', 'lastWorkingDate', 'noticePeriodDuration', 'reportingManager'],
   receipt: ['clientName', 'projectName', 'receiptNo', 'totalProjectCost', 'advanceReceived']
 };
@@ -123,7 +123,7 @@ const documentForms = {
     fields: [
       { label: 'Salutation', key: 'salutation', placeholder: 'Mr. / Ms. / Mrs.' },
       { label: 'Employee Name', key: 'employeeName', placeholder: 'e.g. Kaushal Jangid' },
-      { label: 'Email Address (Optional)', key: 'emailAddress', type: 'email' },
+      { label: 'Email Address', key: 'emailAddress', type: 'email' },
       { label: 'Designation', key: 'designation', placeholder: 'e.g. Full Stack Developer' },
       { label: 'Joining Date', key: 'joiningDate', type: 'date' },
       { label: 'Last Working Date', key: 'lastWorkingDate', type: 'date' },
@@ -241,7 +241,7 @@ export function EmployeeDocumentPage({ type }) {
       }
     }
 
-    if (type !== 'experience' && type !== 'receipt' && fields.emailAddress && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.emailAddress)) {
+    if (type !== 'receipt' && fields.emailAddress && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.emailAddress)) {
       errors.emailAddress = 'Valid email address is required';
     }
 

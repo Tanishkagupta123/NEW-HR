@@ -161,7 +161,7 @@ ${JSON.stringify(leaves)}`);
         const groqClient = new Groq({ apiKey: groqKey });
         const context = contextParts.join('\n\n');
         const completion = await groqClient.chat.completions.create({
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-20b',
           messages: [
             {
               role: 'system',

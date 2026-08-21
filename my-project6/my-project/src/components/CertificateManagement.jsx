@@ -160,53 +160,38 @@ export default function CertificateManagement() {
   };
 
   // Download Certificate
-  const handleDownloadCertificate = async (cert) => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/admin/certificates/certificate/${cert.id}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        responseType: 'blob'
-      });
-
-      // If server returned JSON with a downloadUrl (when file missing on disk), handle that
-      const contentType = response.data.type || '';
-      if (contentType.includes('application/json')) {
-        const text = await response.data.text();
-        const json = JSON.parse(text);
-        if (json.downloadUrl) {
-          window.open(json.downloadUrl, '_blank');
-          return;
-        }
-        setMessage('❌ No downloadable file available');
-        return;
-      }
-
-      const url = window.URL.createObjectURL(response.data);
+  const handleDownloadCertificate = (cert) => {
+    const path = cert.certificatePath || cert.file_path; // Handle both just in case
+    if (path) {
+      const fileUrl = path.startsWith('/') ? `${API_BASE_URL}${path}` : `${API_BASE_URL}/${path}`;
       const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `${cert.recipientName}_certificate.pdf`);
+      link.href = fileUrl;
+      link.target = '_blank';
+      link.download = `${cert.recipientName || 'Certificate'}.pdf`;
       document.body.appendChild(link);
       link.click();
-      link.parentElement.removeChild(link);
-    } catch (err) {
-      setMessage('❌ Failed to download certificate');
+      document.body.removeChild(link);
+    } else {
+      setMessage('⚠️ No downloadable file available for this certificate on the server.');
+      setTimeout(() => setMessage(''), 3000);
     }
   };
 
-  // Resend Email
-  const handleResendEmail = async (cert) => {
+  // Delete Certificate
+  const handleDeleteCertificate = async (cert) => {
+    if (!window.confirm(`Are you sure you want to delete the certificate for ${cert.recipientName || 'this user'}?`)) return;
     try {
       setLoading(true);
-      await axios.post(`${API_BASE_URL}/admin/certificates/resend-certificate-email/${cert.id}`, {}, {
+      await axios.delete(`${API_BASE_URL}/admin/certificates/${cert.id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      setMessage(`✅ Certificate email resent to ${cert.recipientEmail}`);
+      setMessage(`✅ Certificate deleted successfully`);
+      fetchCertificates();
       setTimeout(() => setMessage(''), 3000);
     } catch (err) {
-      setMessage('❌ Failed to resend email');
+      setMessage('❌ Failed to delete certificate');
     } finally {
       setLoading(false);
     }
@@ -529,11 +514,11 @@ export default function CertificateManagement() {
                         <Download size={16} /> Download
                       </button>
                       <button
-                        onClick={() => handleResendEmail(cert)}
+                        onClick={() => handleDeleteCertificate(cert)}
                         disabled={loading}
-                        className="flex-1 px-4 py-2 bg-green-100 hover:bg-green-200 border border-green-300 text-green-700 rounded-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 group-hover:shadow-md disabled:opacity-50"
+                        className="flex-1 px-4 py-2 bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 rounded-lg transition-all font-semibold text-sm flex items-center justify-center gap-2 group-hover:shadow-md disabled:opacity-50"
                       >
-                        <Mail size={16} /> Resend
+                        <X size={16} /> Delete
                       </button>
                     </div>
                   </div>

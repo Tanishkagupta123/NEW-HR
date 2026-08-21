@@ -1539,11 +1539,11 @@ router.post('/send-letter', async (req, res) => {
     const recipientName = value(fields, config.recipientField);
     const recipientEmail = value(fields, config.emailField);
 
-    if (!recipientName || (type !== 'experience' && type !== 'receipt' && !recipientEmail)) {
+    if (!recipientName || (type !== 'receipt' && !recipientEmail)) {
       return res.status(400).json({ message: 'Name is required' });
     }
 
-    if (type !== 'experience' && type !== 'receipt' && recipientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
+    if (type !== 'receipt' && recipientEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipientEmail)) {
       return res.status(400).json({ message: 'Valid email address is required' });
     }
 

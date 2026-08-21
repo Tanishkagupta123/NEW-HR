@@ -25,7 +25,10 @@ export default function Attendance() {
   const [searchTerm, setSearchTerm]           = useState('');
   const [selectedMonth, setSelectedMonth]     = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear]       = useState(new Date().getFullYear());
-  const [filterDate, setFilterDate]           = useState(null);
+  
+  // Default to today's date instead of null
+  const [filterDate, setFilterDate]           = useState(new Date().toISOString().slice(0, 10));
+  
   const [dayFilter, setDayFilter]             = useState('');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
   const [clockNow, setClockNow]               = useState(new Date());
@@ -710,7 +713,7 @@ export default function Attendance() {
 
         {/* ── FILTER & CALENDAR BAR ── */}
         <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="space-y-1.5">
               <label className="block text-xs font-bold text-slate-600">Search Employee</label>
               <input
@@ -735,6 +738,24 @@ export default function Attendance() {
                   </option>
                 ))}
               </select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-600">Month Filter (Full Month View)</label>
+              <input
+                type="month"
+                value={`${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val) {
+                    const [y, m] = val.split('-');
+                    setSelectedYear(Number(y));
+                    setSelectedMonth(Number(m) - 1);
+                    setFilterDate(null);
+                  }
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs font-bold text-slate-800 outline-none focus:border-violet-500 focus:bg-white focus:ring-2 focus:ring-violet-100"
+              />
             </div>
 
             <div className="space-y-1.5">
@@ -906,7 +927,10 @@ export default function Attendance() {
                         <td className="px-4 py-3.5">
                           <button
                             type="button"
-                            onClick={() => setSelectedEmployeeId(String(emp.id))}
+                            onClick={() => {
+                              setSelectedEmployeeId(String(emp.id));
+                              setFilterDate(null);
+                            }}
                             className="flex items-center gap-3 text-left group"
                             title="Click to view full month ledger for this employee"
                           >

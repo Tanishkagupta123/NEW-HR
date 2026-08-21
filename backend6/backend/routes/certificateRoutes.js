@@ -301,4 +301,20 @@ router.post('/generate-certificate', async (req, res) => {
   }
 });
 
+// DELETE: Delete a certificate
+router.delete('/:id', (req, res) => {
+  const { id } = req.params;
+  const sql = 'DELETE FROM certificates WHERE id = ?';
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error('[certificate/delete] Error:', err);
+      return res.status(500).json({ error: 'Database error deleting certificate' });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: 'Certificate not found' });
+    }
+    res.json({ message: 'Certificate deleted successfully' });
+  });
+});
+
 module.exports = router;

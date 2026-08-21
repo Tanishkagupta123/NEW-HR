@@ -5,12 +5,12 @@ const db = require('../configer/db'); // Aapka database connection
 // 1. Save Payroll
 router.post('/save', (req, res) => {
     // PF, ESI, aur TAX yahan add kiya hai
-    const { employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax } = req.body;
+    const { employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax, month_year, absent_days, half_days, late_fines } = req.body;
     
     // SQL query mein column names aur placeholders (?) badhaye hain
-    const sql = "INSERT INTO payroll (employee_name, basic_salary, house_rent, medical, travel, overtime, bonus, leave_deduction, other_deduction, gross_salary, net_salary, pf, esi, tax) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+    const sql = "INSERT INTO payroll (employee_name, basic_salary, house_rent, medical, travel, overtime, bonus, leave_deduction, other_deduction, gross_salary, net_salary, pf, esi, tax, month_year, absent_days, half_days, late_fines) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
     
-    db.query(sql, [employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax], (err, result) => {
+    db.query(sql, [employee, basicSalary, houseRent, medical, travel, overtime, bonus, leaveDeduction, otherDeduction, gross, net, pf, esi, tax, month_year || null, absent_days || 0, half_days || 0, late_fines || 0], (err, result) => {
         if(err) {
             console.error(err);
             return res.status(500).json(err);

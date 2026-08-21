@@ -194,32 +194,67 @@ router.post('/send-mail', async (req, res) => {
             res.status(500).json({ error: `Failed to create PDF: ${err.message}` });
         });
 
-        // PDF Content (safe text)
-        doc.fontSize(20).font('Helvetica-Bold').text('SALARY SLIP', { align: 'center' }).moveDown();
-        doc.fontSize(12).font('Helvetica-Bold').text(`Employee: ${employeeName}`).moveDown(0.5);
-        doc.font('Helvetica').text(`Email: ${recipientEmail}`).moveDown(0.5);
-        doc.text(`Date: ${new Date().toLocaleDateString('en-GB')}`).moveDown(1);
+        // PDF Content (Professional format with Logo)
+        const logoPath = path.join(__dirname, '../assets/as-group-full-logo-transparent.png');
+        if (fs.existsSync(logoPath)) {
+            // Center the logo. Page width is approx 612. If logo width is 200, x = (612-200)/2 = 206
+            doc.image(logoPath, 206, 15, { width: 200 });
+        }
+        
+        // Separator Line
+        doc.moveTo(50, 160).lineTo(550, 160).stroke('#cbd5e1');
+        
+        // Reset colors and positions
+        doc.fillColor('#0f172a');
+        doc.y = 175;
+        doc.x = 50;
 
-        doc.fontSize(11).font('Helvetica-Bold').text('EARNINGS:', { underline: true }).moveDown(0.3);
-        doc.font('Helvetica').text(`Basic Salary: Rs. ${basic_salary || 0}`);
-        doc.text(`House Rent Allowance: Rs. ${house_rent || 0}`);
-        doc.text(`Medical Allowance: Rs. ${medical || 0}`);
-        doc.text(`Travel Allowance: Rs. ${travel || 0}`);
-        doc.text(`Overtime: Rs. ${overtime || 0}`);
-        doc.text(`Bonus: Rs. ${bonus || 0}`).moveDown(0.5);
+        doc.fontSize(16).font('Helvetica-Bold').text('SALARY SLIP', { align: 'center' }).moveDown(1.5);
+        
+        // Employee Details
+        doc.fontSize(11).font('Helvetica-Bold').text(`Employee Name:`, 50, doc.y, { continued: true }).font('Helvetica').text(` ${employeeName}`);
+        doc.font('Helvetica-Bold').text(`Email ID:`, 50, doc.y + 15, { continued: true }).font('Helvetica').text(` ${recipientEmail}`);
+        doc.font('Helvetica-Bold').text(`Salary Month:`, 50, doc.y + 15, { continued: true }).font('Helvetica').text(` ${req.body.month_year || 'Current Month'}`);
+        doc.font('Helvetica-Bold').text(`Date Generated:`, 50, doc.y + 15, { continued: true }).font('Helvetica').text(` ${new Date().toLocaleDateString('en-GB')}`);
+        
+        doc.moveDown(2);
+        
+        // EARNINGS
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#4c1d95').text('EARNINGS', 50, doc.y, { underline: true }).moveDown(0.5);
+        doc.fillColor('#000000');
+        doc.fontSize(11).font('Helvetica').text(`Basic Salary: Rs. ${basic_salary || 0}`);
+        if (Number(house_rent) > 0) doc.text(`House Rent Allowance (HRA): Rs. ${house_rent}`);
+        if (Number(medical) > 0) doc.text(`Medical Allowance: Rs. ${medical}`);
+        if (Number(travel) > 0) doc.text(`Travel Allowance: Rs. ${travel}`);
+        if (Number(overtime) > 0) doc.text(`Overtime: Rs. ${overtime}`);
+        if (Number(bonus) > 0) doc.text(`Bonus: Rs. ${bonus}`);
+        doc.moveDown(1.5);
 
-        doc.font('Helvetica-Bold').text('DEDUCTIONS:', { underline: true }).moveDown(0.3);
-        doc.font('Helvetica').text(`Provident Fund (PF): Rs. ${pf || 0}`);
-        doc.text(`Employee State Insurance (ESI): Rs. ${esi || 0}`);
-        doc.text(`Income Tax: Rs. ${tax || 0}`);
-        doc.text(`Leave Deductions: Rs. ${leave_deduction || 0}`);
-        doc.text(`Other Deductions: Rs. ${other_deduction || 0}`).moveDown(0.5);
+        // DEDUCTIONS
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#dc2626').text('DEDUCTIONS', { underline: true }).moveDown(0.5);
+        doc.fillColor('#000000');
+        doc.fontSize(11).font('Helvetica');
+        if (Number(pf) > 0) doc.text(`Provident Fund (PF): Rs. ${pf}`);
+        if (Number(esi) > 0) doc.text(`Employee State Insurance (ESI): Rs. ${esi}`);
+        if (Number(tax) > 0) doc.text(`Income Tax: Rs. ${tax}`);
+        if (Number(req.body.absent_days) > 0 || Number(req.body.half_days) > 0 || Number(req.body.late_fines) > 0) {
+            doc.text(`Absents: ${req.body.absent_days || 0} days | Half Days: ${req.body.half_days || 0} | Fines: ${req.body.late_fines || 0}`);
+        }
+        if (Number(leave_deduction) > 0) doc.text(`Total Leave Deductions: Rs. ${leave_deduction}`);
+        if (Number(other_deduction) > 0) doc.text(`Other Deductions: Rs. ${other_deduction}`);
+        doc.moveDown(1.5);
 
-        doc.fontSize(12).font('Helvetica-Bold').text('SUMMARY:', { underline: true }).moveDown(0.3);
+        // SUMMARY
+        doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke('#cbd5e1');
+        doc.moveDown(1);
+        doc.fontSize(12).font('Helvetica-Bold').fillColor('#000000').text('SUMMARY', { underline: true }).moveDown(0.5);
         doc.font('Helvetica').text(`Gross Salary: Rs. ${gross_salary || 0}`);
+        doc.moveDown(0.5);
+        
         doc.fontSize(13).font('Helvetica-Bold').text(`NET SALARY: Rs. ${net_salary || 0}`).moveDown(1);
-
-        doc.fontSize(10).font('Helvetica-Oblique').text('This is a computer-generated document from AS GROUP DIGITAL PVT LTD.');
+        
+        doc.moveDown(1.5);
+        doc.fillColor('#94a3b8').fontSize(9).font('Helvetica-Oblique').text('This is a computer-generated document from AS GROUP DIGITAL PVT LTD and does not require a signature.', 50);
         doc.end();
 
     } catch (err) {

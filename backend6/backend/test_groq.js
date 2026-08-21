@@ -1,0 +1,1 @@
+﻿require('dotenv').config(); const Groq = require('groq-sdk'); const groq = new Groq({ apiKey: process.env.GROQ_API_KEY }); groq.chat.completions.create({ model: 'llama-3.1-8b-instant', messages: [{role: 'user', content: 'hello'}]}).then(console.log).catch(console.error);

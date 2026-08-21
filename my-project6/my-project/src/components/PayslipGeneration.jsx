@@ -6,12 +6,26 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export default function PayslipGeneration() {
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonthValue = `${currentYear}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState("June 2026");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthValue);
   const [employees, setEmployees] = useState([]); 
   const [selectedEmp, setSelectedEmp] = useState(null);
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const formatMonth = (val) => {
+    if (!val || typeof val !== 'string') return val;
+    const parts = val.split('-');
+    if (parts.length === 2) {
+      const mIndex = Number(parts[1]) - 1;
+      if (mIndex >= 0 && mIndex < 12) return `${months[mIndex]} ${parts[0]}`;
+    }
+    return val;
+  };
 
   const fetchPayslips = async () => {
     try {
@@ -31,31 +45,34 @@ export default function PayslipGeneration() {
   };
 
   // PDF Generation Logic - FIXED
-  const handleDownload = (emp) => {
+    const handleDownload = (emp) => {
     const doc = new jsPDF();
     doc.setFontSize(20);
     doc.text("SALARY SLIP", 105, 20, { align: "center" });
     doc.setFontSize(12);
     doc.text(`Employee: ${emp.employee_name}`, 14, 30);
+    doc.text(`Salary Month: ${emp.month_year || selectedMonth}`, 14, 38);
     
     // autoTable(doc, { ... }) ka sahi syntax
     autoTable(doc, {
-      startY: 35,
+      startY: 45,
       head: [['Description', 'Amount (₹)']],
       body: [
         ['Basic Salary', emp.basic_salary || 0],
-        ['HRA', emp.house_rent || 0],
-        ['Medical', emp.medical || 0],
-        ['Travel', emp.travel || 0],
-        ['Bonus', emp.bonus || 0],
-        ['Overtime', emp.overtime || 0],
-        ['PF (Deduction)', `-${emp.pf || 0}`],
-        ['ESI (Deduction)', `-${emp.esi || 0}`],
-        ['Tax (Deduction)', `-${emp.tax || 0}`],
-        ['Leaves/Other Deductions', `-${Number(emp.leave_deduction || 0) + Number(emp.other_deduction || 0)}`],
+        Number(emp.house_rent) > 0 ? ['HRA', emp.house_rent] : null,
+        Number(emp.medical) > 0 ? ['Medical', emp.medical] : null,
+        Number(emp.travel) > 0 ? ['Travel', emp.travel] : null,
+        Number(emp.bonus) > 0 ? ['Bonus', emp.bonus] : null,
+        Number(emp.overtime) > 0 ? ['Overtime', emp.overtime] : null,
+        Number(emp.pf) > 0 ? ['PF (Deduction)', `-${emp.pf}`] : null,
+        Number(emp.esi) > 0 ? ['ESI (Deduction)', `-${emp.esi}`] : null,
+        Number(emp.tax) > 0 ? ['Tax (Deduction)', `-${emp.tax}`] : null,
+        (Number(emp.absent_days) > 0 || Number(emp.half_days) > 0 || Number(emp.late_fines) > 0) ? [`Absents (${emp.absent_days || 0}) / Half Days (${emp.half_days || 0}) / Fines (${emp.late_fines || 0})`, ''] : null,
+        Number(emp.leave_deduction) > 0 ? ['Leave Deductions (Total)', `-${emp.leave_deduction}`] : null,
+        Number(emp.other_deduction) > 0 ? ['Other Deductions', `-${emp.other_deduction}`] : null,
         ['Gross Salary', emp.gross_salary || 0],
         ['NET SALARY', emp.net_salary || 0],
-      ],
+      ].filter(Boolean),
       theme: 'striped',
     });
     
@@ -96,9 +113,12 @@ export default function PayslipGeneration() {
           <input type="text" placeholder="Search employee..." className="bg-transparent outline-none w-full" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
         <select className="w-full px-4 py-2 rounded-xl border bg-white outline-none sm:w-auto" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-          {months.map((m) => (<option key={m} value={`${m} 2026`}>{m} 2026</option>))}
+          {months.map((m, i) => {
+            const val = `${currentYear}-${String(i + 1).padStart(2, '0')}`;
+            return <option key={val} value={val}>{m} {currentYear}</option>;
+          })}
         </select>
-        <button onClick={() => { setSearchTerm(""); setSelectedMonth("June 2026"); }} className="w-full px-6 py-2 rounded-xl border border-slate-300 font-semibold hover:bg-slate-100 sm:w-auto">Reset</button>
+        <button onClick={() => { setSearchTerm(""); setSelectedMonth(currentMonthValue); }} className="w-full px-6 py-2 rounded-xl border border-slate-300 font-semibold hover:bg-slate-100 sm:w-auto">Reset</button>
       </div>
 
       <div className="bg-white rounded-3xl border shadow-sm overflow-x-auto">
@@ -149,22 +169,26 @@ export default function PayslipGeneration() {
             </button>
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-violet-900">Salary Breakdown</h2>
-              <p className="text-slate-500 text-sm mt-1">{selectedMonth} - {selectedEmp.employee_name}</p>
+              <p className="text-slate-500 text-sm mt-1">{formatMonth(selectedMonth)} - {selectedEmp.employee_name}</p>
             </div>
             <div className="space-y-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
               <div className="space-y-2 text-sm text-slate-700">
                 <div className="flex justify-between"><span>Basic:</span> <b>₹{selectedEmp.basic_salary || 0}</b></div>
-                <div className="flex justify-between"><span>HRA:</span> <b>₹{selectedEmp.house_rent || 0}</b></div>
-                <div className="flex justify-between"><span>Medical:</span> <b>₹{selectedEmp.medical || 0}</b></div>
-                <div className="flex justify-between"><span>Travel:</span> <b>₹{selectedEmp.travel || 0}</b></div>
-                <div className="flex justify-between"><span>Bonus:</span> <b>₹{selectedEmp.bonus || 0}</b></div>
-                <div className="flex justify-between"><span>OT:</span> <b>₹{selectedEmp.overtime || 0}</b></div>
+                {Number(selectedEmp.house_rent) > 0 && <div className="flex justify-between"><span>HRA:</span> <b>₹{selectedEmp.house_rent}</b></div>}
+                {Number(selectedEmp.medical) > 0 && <div className="flex justify-between"><span>Medical:</span> <b>₹{selectedEmp.medical}</b></div>}
+                {Number(selectedEmp.travel) > 0 && <div className="flex justify-between"><span>Travel:</span> <b>₹{selectedEmp.travel}</b></div>}
+                {Number(selectedEmp.bonus) > 0 && <div className="flex justify-between"><span>Bonus:</span> <b>₹{selectedEmp.bonus}</b></div>}
+                {Number(selectedEmp.overtime) > 0 && <div className="flex justify-between"><span>OT:</span> <b>₹{selectedEmp.overtime}</b></div>}
               </div>
               <div className="border-t border-slate-200 pt-3 space-y-2 text-sm text-red-600">
-                <div className="flex justify-between"><span>PF:</span> <b>-₹{selectedEmp.pf || 0}</b></div>
-                <div className="flex justify-between"><span>ESI:</span> <b>-₹{selectedEmp.esi || 0}</b></div>
-                <div className="flex justify-between"><span>Tax:</span> <b>-₹{selectedEmp.tax || 0}</b></div>
-                <div className="flex justify-between"><span>Leaves/Other:</span> <b>-₹{Number(selectedEmp.leave_deduction || 0) + Number(selectedEmp.other_deduction || 0)}</b></div>
+                {Number(selectedEmp.pf) > 0 && <div className="flex justify-between"><span>PF:</span> <b>-₹{selectedEmp.pf}</b></div>}
+                {Number(selectedEmp.esi) > 0 && <div className="flex justify-between"><span>ESI:</span> <b>-₹{selectedEmp.esi}</b></div>}
+                {Number(selectedEmp.tax) > 0 && <div className="flex justify-between"><span>Tax:</span> <b>-₹{selectedEmp.tax}</b></div>}
+                {Number(selectedEmp.absent_days) > 0 && <div className="flex justify-between"><span>Absents ({selectedEmp.absent_days}):</span> <b>-</b></div>}
+                {Number(selectedEmp.half_days) > 0 && <div className="flex justify-between"><span>Half Days ({selectedEmp.half_days}):</span> <b>-</b></div>}
+                {Number(selectedEmp.late_fines) > 0 && <div className="flex justify-between"><span>Late Fines ({selectedEmp.late_fines}):</span> <b>-</b></div>}
+                {Number(selectedEmp.leave_deduction) > 0 && <div className="flex justify-between"><span>Total Leaves (Amount):</span> <b>-₹{selectedEmp.leave_deduction}</b></div>}
+                {Number(selectedEmp.other_deduction) > 0 && <div className="flex justify-between"><span>Other Deductions:</span> <b>-₹{selectedEmp.other_deduction}</b></div>}
               </div>
             </div>
             <div className="mt-6 space-y-2">

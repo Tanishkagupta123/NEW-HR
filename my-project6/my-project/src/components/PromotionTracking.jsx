@@ -230,20 +230,21 @@ export default function PromotionTracking() {
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Users size={34} className="text-indigo-600 mb-4" />
+          {/* Candidates Card */}
           <p className="text-gray-500">Candidates</p>
-          <h2 className="text-4xl font-bold mt-2">34</h2>
+          <h2 className="text-4xl font-bold mt-2">{promotionList.length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Award size={34} className="text-green-600 mb-4" />
           <p className="text-gray-500">Eligible</p>
-          <h2 className="text-4xl font-bold mt-2">18</h2>
+          <h2 className="text-4xl font-bold mt-2">{promotionList.filter(p => p.status === "Eligible").length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <ArrowUpCircle size={34} className="text-blue-600 mb-4" />
           <p className="text-gray-500">Promoted</p>
-          <h2 className="text-4xl font-bold mt-2">9</h2>
+          <h2 className="text-4xl font-bold mt-2">{promotionList.filter(p => p.status === "Approved" || p.status === "Promoted").length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">

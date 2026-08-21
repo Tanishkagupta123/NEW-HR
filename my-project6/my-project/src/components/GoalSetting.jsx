@@ -11,47 +11,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const goals = [
-  {
-    id: 1,
-    employee: "John Smith",
-    goal: "Complete HRMS Dashboard",
-    priority: "High",
-    deadline: "30 Jul 2026",
-    progress: 80,
-    status: "In Progress",
-  },
-  {
-    id: 2,
-    employee: "Emma Wilson",
-    goal: "Reduce Recruitment Time",
-    priority: "Medium",
-    deadline: "15 Aug 2026",
-    progress: 55,
-    status: "In Progress",
-  },
-  {
-    id: 3,
-    employee: "Michael Lee",
-    goal: "Increase Sales by 20%",
-    priority: "High",
-    deadline: "01 Sep 2026",
-    progress: 100,
-    status: "Completed",
-  },
-  {
-    id: 4,
-    employee: "Sophia Davis",
-    goal: "Improve Customer Satisfaction",
-    priority: "Low",
-    deadline: "20 Sep 2026",
-    progress: 35,
-    status: "Pending",
-  },
-];
-
 export default function GoalSetting() {
-  const [goalsState, setGoalsState] = useState(goals);
+  const [goalsState, setGoalsState] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [showNewGoalForm, setShowNewGoalForm] = useState(false);
   const [newGoal, setNewGoal] = useState({
@@ -206,26 +167,27 @@ export default function GoalSetting() {
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Target className="text-indigo-600 mb-4" size={34} />
+          {/* Total Goals Card */}
           <p className="text-gray-500">Total Goals</p>
-          <h2 className="text-4xl font-bold mt-2">68</h2>
+          <h2 className="text-4xl font-bold mt-2">{goalsState.length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <CheckCircle2 className="text-green-600 mb-4" size={34} />
           <p className="text-gray-500">Completed</p>
-          <h2 className="text-4xl font-bold mt-2">42</h2>
+          <h2 className="text-4xl font-bold mt-2">{goalsState.filter(g => g.status === "Completed").length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Calendar className="text-orange-500 mb-4" size={34} />
           <p className="text-gray-500">Pending</p>
-          <h2 className="text-4xl font-bold mt-2">18</h2>
+          <h2 className="text-4xl font-bold mt-2">{goalsState.filter(g => g.status === "Pending").length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Flag className="text-red-500 mb-4" size={34} />
           <p className="text-gray-500">High Priority</p>
-          <h2 className="text-4xl font-bold mt-2">8</h2>
+          <h2 className="text-4xl font-bold mt-2">{goalsState.filter(g => g.priority === "High").length}</h2>
         </div>
 
       </div>

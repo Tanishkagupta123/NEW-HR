@@ -228,26 +228,27 @@ export default function EmployeeReviews() {
 
         <div className="bg-white rounded-2xl shadow p-5">
           <MessageSquare size={35} className="text-indigo-600 mb-4" />
+          {/* Total Reviews Card */}
           <p className="text-gray-500">Total Reviews</p>
-          <h2 className="text-4xl font-bold mt-2">124</h2>
+          <h2 className="text-4xl font-bold mt-2">{reviewsState.length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Star size={35} className="text-yellow-500 mb-4" />
           <p className="text-gray-500">Average Rating</p>
-          <h2 className="text-4xl font-bold mt-2">4.6</h2>
+          <h2 className="text-4xl font-bold mt-2">{reviewsState.length > 0 ? (reviewsState.reduce((acc, r) => acc + Number(r.rating || 0), 0) / reviewsState.length).toFixed(1) : "0.0"}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Calendar size={35} className="text-green-600 mb-4" />
           <p className="text-gray-500">Completed Reviews</p>
-          <h2 className="text-4xl font-bold mt-2">98</h2>
+          <h2 className="text-4xl font-bold mt-2">{reviewsState.filter(r => r.status === "Completed").length}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <Calendar size={35} className="text-red-500 mb-4" />
           <p className="text-gray-500">Pending Reviews</p>
-          <h2 className="text-4xl font-bold mt-2">26</h2>
+          <h2 className="text-4xl font-bold mt-2">{reviewsState.filter(r => r.status === "Pending").length}</h2>
         </div>
 
       </div>

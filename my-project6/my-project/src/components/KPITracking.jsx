@@ -1,6 +1,6 @@
-import { API_BASE_URL } from '../config/api';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { API_BASE_URL } from '../config/api';
 import {
   Search,
   Download,
@@ -11,47 +11,8 @@ import {
   AlertTriangle,
 } from "lucide-react";
 
-const initialEmployees = [
-  {
-    id: 1,
-    name: "John Smith",
-    department: "Development",
-    target: "95%",
-    achieved: "90%",
-    progress: 90,
-    status: "Excellent",
-  },
-  {
-    id: 2,
-    name: "Sarah Johnson",
-    department: "HR",
-    target: "90%",
-    achieved: "84%",
-    progress: 84,
-    status: "Good",
-  },
-  {
-    id: 3,
-    name: "Michael Lee",
-    department: "Marketing",
-    target: "88%",
-    achieved: "70%",
-    progress: 70,
-    status: "Average",
-  },
-  {
-    id: 4,
-    name: "Emma Wilson",
-    department: "Finance",
-    target: "92%",
-    achieved: "60%",
-    progress: 60,
-    status: "Needs Improvement",
-  },
-];
-
 export default function KPITracking() {
-  const [kpis, setKpis] = useState(initialEmployees);
+  const [kpis, setKpis] = useState([]);
   const [form, setForm] = useState({
     employee: '',
     department: '',
@@ -98,7 +59,7 @@ export default function KPITracking() {
   const exportKpis = () => {
     const headers = ['Employee', 'Department', 'Target', 'Achieved', 'Progress', 'Status'];
     const rows = kpis.map((item) => [
-      item.employee,
+      item.employee || item.name,
       item.department,
       item.target,
       item.achieved,
@@ -149,24 +110,31 @@ export default function KPITracking() {
     fetchEmployees();
   }, []);
 
+  // Calculate Real Data Stats
+  const totalKpis = kpis.length;
+  const avgPerformance = totalKpis > 0 
+    ? (kpis.reduce((acc, curr) => acc + (parseFloat(curr.progress) || 0), 0) / totalKpis).toFixed(0) 
+    : 0;
+  
+  // Define "Achieved" as progress >= 80% or status Excellent/Good
+  const goalsAchieved = kpis.filter(k => (parseFloat(k.progress) || 0) >= 80 || k.status?.toLowerCase() === 'excellent' || k.status?.toLowerCase() === 'good').length;
+  
+  // Define "At Risk" as progress < 40% or status Poor
+  const atRisk = kpis.filter(k => (parseFloat(k.progress) || 0) < 40 || k.status?.toLowerCase() === 'poor' || k.status?.toLowerCase() === 'needs improvement' || k.status?.toLowerCase() === 'at risk').length;
+
   return (
     <div className="bg-gray-100 min-h-screen p-4 sm:p-6">
 
       {/* Header */}
-
       <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
         <div>
           <h1 className="text-3xl font-bold">
             KPI Tracking
           </h1>
-
           <p className="text-gray-500 mt-2">
-            Monitor employee performance against business goals and key
-            performance indicators.
+            Monitor employee performance against business goals and key performance indicators.
           </p>
         </div>
-
         <button
           onClick={exportKpis}
           className="bg-indigo-600 text-white px-5 py-3 rounded-xl flex items-center justify-center gap-2"
@@ -174,37 +142,33 @@ export default function KPITracking() {
           <Download size={18} />
           Export Report
         </button>
-
       </div>
 
       {/* Summary Cards */}
-
       <div className="grid lg:grid-cols-4 md:grid-cols-2 gap-6 mb-8">
-
         <div className="bg-white rounded-2xl shadow p-5">
           <Target className="text-indigo-600 mb-4" size={35} />
           <p className="text-gray-500">Total KPIs</p>
-          <h2 className="text-4xl font-bold mt-2">48</h2>
+          <h2 className="text-4xl font-bold mt-2">{totalKpis}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <TrendingUp className="text-green-600 mb-4" size={35} />
           <p className="text-gray-500">Average Performance</p>
-          <h2 className="text-4xl font-bold mt-2">82%</h2>
+          <h2 className="text-4xl font-bold mt-2">{avgPerformance}%</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <CheckCircle2 className="text-blue-600 mb-4" size={35} />
           <p className="text-gray-500">Goals Achieved</p>
-          <h2 className="text-4xl font-bold mt-2">31</h2>
+          <h2 className="text-4xl font-bold mt-2">{goalsAchieved}</h2>
         </div>
 
         <div className="bg-white rounded-2xl shadow p-5">
           <AlertTriangle className="text-red-500 mb-4" size={35} />
           <p className="text-gray-500">At Risk</p>
-          <h2 className="text-4xl font-bold mt-2">6</h2>
+          <h2 className="text-4xl font-bold mt-2">{atRisk}</h2>
         </div>
-
       </div>
 
       {/* KPI Save Form */}
@@ -273,97 +237,60 @@ export default function KPITracking() {
       </div>
 
       {/* Table */}
-
       <div className="overflow-x-auto bg-white rounded-2xl shadow">
-
         <div className="flex min-w-[620px] flex-col gap-4 p-4 sm:p-6 md:flex-row md:items-center md:justify-between border-b">
-
           <h2 className="text-xl font-semibold">
             Employee KPI Overview
           </h2>
-
           <div className="flex gap-3">
-
             <div className="relative">
-
               <Search
                 size={18}
                 className="absolute left-3 top-3 text-gray-400"
               />
-
               <input
                 type="text"
                 placeholder="Search Employee"
                 className="border rounded-xl pl-10 pr-4 py-2"
               />
-
             </div>
-
             <button className="border rounded-xl px-4 flex items-center gap-2">
               <Filter size={18} />
               Filter
             </button>
-
           </div>
-
         </div>
-
         <table className="w-full min-w-[760px]">
-
           <thead className="bg-gray-50">
-
             <tr className="text-left">
-
               <th className="p-4">Employee</th>
               <th>Department</th>
               <th>Target</th>
               <th>Achieved</th>
               <th>Progress</th>
               <th>Status</th>
-
             </tr>
-
           </thead>
-
           <tbody>
-
             {kpis.map((item) => (
-
-              <tr
-                key={item.id}
-                className="border-b hover:bg-gray-50"
-              >
-
+              <tr key={item.id} className="border-b hover:bg-gray-50">
                 <td className="p-4 font-medium">
                   {item.employee || item.name}
                 </td>
-
                 <td>{item.department}</td>
-
                 <td>{item.target}</td>
-
                 <td>{item.achieved}</td>
-
                 <td className="w-72">
-
                   <div className="w-full bg-gray-200 rounded-full h-3">
-
                     <div
                       className="bg-indigo-600 h-3 rounded-full"
-                      style={{
-                        width: `${item.progress}%`,
-                      }}
+                      style={{ width: `${item.progress}%` }}
                     />
-
                   </div>
-
                 </td>
-
                 <td>
-
                   <span
-                    className={`px-3 py-1 rounded-full text-sm
-                    ${
+                    className={`px-3 py-1 rounded-full text-sm ${
                       item.status === "Excellent"
                         ? "bg-green-100 text-green-700"
                         : item.status === "Good"
@@ -375,19 +302,19 @@ export default function KPITracking() {
                   >
                     {item.status}
                   </span>
-
                 </td>
-
               </tr>
-
             ))}
-
+            {kpis.length === 0 && (
+              <tr>
+                <td colSpan="6" className="p-8 text-center text-slate-500">
+                  No KPI records found.
+                </td>
+              </tr>
+            )}
           </tbody>
-
         </table>
-
       </div>
-
     </div>
   );
 }

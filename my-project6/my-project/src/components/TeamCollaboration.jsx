@@ -963,7 +963,7 @@ export default function TeamCollaboration({ defaultPanel = null }) {
         {!isAdminTeamCollab && location.pathname !== '/dashboard/team-collaboration' && (
           <div className="mt-8">
             {isAdminCommunication && !activeCommunicationPanel && (
-              <div className="mb-6 grid gap-5 lg:grid-cols-3">
+              <div className="mb-6 grid gap-5 lg:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => navigate('/admin/communication-system/notice')}
@@ -986,16 +986,7 @@ export default function TeamCollaboration({ defaultPanel = null }) {
                   <p className="text-sm text-slate-500">Click to open the Announcement UI.</p>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => navigate('/admin/communication-system/email')}
-                  className={`rounded-2xl border p-6 text-left transition ${activeCommunicationPanel === 'email' ? 'border-violet-400 bg-violet-50' : 'border-slate-200 bg-white hover:border-violet-300 hover:shadow-sm'}`}>
-                  <div className="mb-3 flex items-center gap-3">
-                    <SectionIcon icon={Bell} />
-                    <h2 className="text-base font-semibold text-slate-800">Email Notifications</h2>
-                  </div>
-                  <p className="text-sm text-slate-500">Click to open the Email Notifications UI.</p>
-                </button>
+                
               </div>
             )}
 
@@ -1119,7 +1110,7 @@ export default function TeamCollaboration({ defaultPanel = null }) {
                     <div className="flex flex-wrap gap-2 text-sm text-slate-600">
                       <span className={pill}>Notices: {updatesCounts.notices}</span>
                       <span className={pill}>Announcements: {updatesCounts.announcements}</span>
-                      <span className={pill}>Emails: {updatesCounts.emails}</span>
+                      
                     </div>
                   )}
                 </div>
@@ -1201,113 +1192,10 @@ export default function TeamCollaboration({ defaultPanel = null }) {
               </div>
             )}
 
-            {(!isAdminCommunication || activeCommunicationPanel === 'email') && (
-              <div className="mt-4 space-y-5">
-                {isAdminPath && (
-                  <div className={card}>
-                    <div className="mb-4 flex items-center gap-3">
-                      <SectionIcon icon={Bell} />
-                      <h2 className="text-base font-semibold text-slate-800">Email Notifications</h2>
-                    </div>
-                    <p className="mb-4 text-sm text-slate-500">Schedule and preview email templates for key HR events, then review the delivery history.</p>
-                    <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-                      <div className="space-y-4">
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Event Type</label>
-                          <select value={emailForm.eventType} onChange={(e) => handleEmailChange('eventType', e.target.value)} className={inputBase}>
-                            <option>Welcome</option>
-                            <option>Password Reset</option>
-                            <option>Leave Approval</option>
-                            <option>Task Assignment</option>
-                            <option>Attendance Reminder</option>
-                            <option>Performance Update</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Recipient Group</label>
-                          <select value={emailForm.recipientGroup} onChange={(e) => handleEmailChange('recipientGroup', e.target.value)} className={inputBase}>
-                            <option>All Employees</option>
-                            <option>HR Team</option>
-                            <option>Managers</option>
-                            <option>Finance</option>
-                            <option>New Hires</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Subject</label>
-                          <input type="text" value={emailForm.subject} onChange={(e) => handleEmailChange('subject', e.target.value)} placeholder="Enter email subject" className={inputBase} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Message</label>
-                          <textarea value={emailForm.message} onChange={(e) => handleEmailChange('message', e.target.value)} rows={5} placeholder="Write message body" className={inputBase} />
-                        </div>
-                        <div className="space-y-1.5">
-                          <label className="text-sm font-medium text-slate-700">Attachment (optional)</label>
-                          <input type="text" value={emailForm.attachment} onChange={(e) => handleEmailChange('attachment', e.target.value)} placeholder="Attachment filename or URL" className={inputBase} />
-                        </div>
-                        <div className="flex flex-wrap gap-3">
-                          <button onClick={saveEmailNotification} className={primaryBtn}>Send Email</button>
-                          <button onClick={resetEmailForm} className={outlineBtn}>Reset</button>
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                        <div className="mb-4 flex items-center justify-between">
-                          <div>
-                            <h3 className="text-sm font-semibold text-slate-800">Email Preview</h3>
-                            <p className="text-xs text-slate-500">How the recipient will see the message.</p>
-                          </div>
-                          <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">{emailForm.eventType}</span>
-                        </div>
-                        <div className="space-y-3 text-sm text-slate-700">
-                          <div>
-                            <span className="mb-1 block text-xs text-slate-400">To:</span>
-                            <p className="rounded-lg bg-white p-3 text-slate-800 ring-1 ring-slate-200">{emailForm.recipientGroup}</p>
-                          </div>
-                          <div>
-                            <span className="mb-1 block text-xs text-slate-400">Subject:</span>
-                            <p className="rounded-lg bg-white p-3 text-slate-800 ring-1 ring-slate-200">{emailForm.subject || 'No subject yet'}</p>
-                          </div>
-                          <div>
-                            <span className="mb-1 block text-xs text-slate-400">Message:</span>
-                            <p className="whitespace-pre-wrap rounded-lg bg-white p-3 text-slate-800 ring-1 ring-slate-200">{emailForm.message || 'No message yet'}</p>
-                          </div>
-                          {emailForm.attachment && (
-                            <div className="rounded-lg bg-white p-3 text-sm text-slate-700 ring-1 ring-slate-200">Attachment: {emailForm.attachment}</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div className={card}>
-                  <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-                    <div>
-                      <h3 className="text-base font-semibold text-slate-800">Recent Email History</h3>
-                      <p className="text-sm text-slate-500">Track previously sent notifications and their status.</p>
-                    </div>
-                    <button onClick={() => setEmailHistory((prev) => prev)} className={outlineBtn}>Refresh</button>
-                  </div>
-                  <div className="space-y-3">
-                    {emailHistory.map((item) => (
-                      <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 p-3 md:p-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-700">
-                          <div className="space-y-1">
-                            <div className="font-semibold text-slate-800">{item.subject}</div>
-                            <div className="text-slate-500">{item.eventType} • {item.recipientGroup}</div>
-                          </div>
-                          <span className={pill}>{item.status}</span>
-                        </div>
-                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-400">
-                          <span>Sent: {item.sentOn}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            
+
+            </div>
+          )}
 
         {(showChat) ? (
           <div className="mt-8 border-t border-slate-100 pt-6 md:pt-8">
