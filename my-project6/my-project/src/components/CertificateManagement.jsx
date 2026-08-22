@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config/api';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Send, Download, Mail, Plus, X, CheckCircle, Clock, AlertCircle, Sparkles } from 'lucide-react';
-import logo from '../assets/as group logo.webp';
+import logo from '../assets/ASGROUP-logo.webp';
 
 const CERTIFICATE_TYPES = [
   { id: 'training', name: 'Training Completion', icon: '', color: 'from-blue-600 to-blue-400' },
@@ -203,7 +203,7 @@ export default function CertificateManagement() {
         {/* Header Section */}
         <div className="mb-8 sm:mb-12 text-center">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <img src={logo} alt="AS GROUP DIGITAL PVT LTD" className="w-16 h-16 object-contain" />
+            <img src={logo} alt="ASGROUP DIGITAL PVT LTD" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-violet-950 mb-2">
             Certificate Management

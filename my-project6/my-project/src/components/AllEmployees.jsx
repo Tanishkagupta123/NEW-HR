@@ -75,7 +75,14 @@ export default function AllEmployees() {
     return path.startsWith('http') ? path : `${API_BASE_URL}/${path.replace(/^\/+/, '')}`;
   };
 
-  const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
+  const updateForm = (key, value) => setForm((prev) => {
+    const nextState = { ...prev, [key]: value };
+    if (key === 'department' && (value === 'HR' || value.toLowerCase() === 'human resources')) {
+      nextState.position = 'HR Department';
+      nextState.designation = 'HR Department';
+    }
+    return nextState;
+  });
 
   const handleResetFilters = () => {
     setSearch('');

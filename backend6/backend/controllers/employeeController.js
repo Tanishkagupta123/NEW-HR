@@ -319,3 +319,37 @@ exports.updateSkills = (req, res) => {
 		});
 	});
 };
+
+
+exports.listHRs = (req, res) => {
+  const sql = "SELECT id, name, position, department, role_position, is_primary_hr FROM employees WHERE department LIKE '%HR%' OR position LIKE '%HR%' OR role_position LIKE '%HR%'";
+  db.query(sql, (err, result) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json(result);
+  });
+};
+
+exports.setPrimaryHR = (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: 'Employee ID required' });
+  const resetSql = "UPDATE employees SET is_primary_hr = FALSE WHERE is_primary_hr = TRUE";
+  db.query(resetSql, (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    const setSql = "UPDATE employees SET is_primary_hr = TRUE WHERE id = ?";
+    db.query(setSql, [id], (err2) => {
+      if (err2) return res.status(500).json({ success: false, message: err2.message });
+      res.json({ success: true, message: 'Primary HR updated successfully' });
+    });
+  });
+};
+
+exports.removeHRStatus = (req, res) => {
+  const { id } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: 'Employee ID required' });
+  const updateSql = "UPDATE employees SET is_primary_hr = FALSE, department = 'Employee', designation = 'Staff', position = 'Staff', role_position = 'employee' WHERE id = ?";
+  db.query(updateSql, [id], (err) => {
+    if (err) return res.status(500).json({ success: false, message: err.message });
+    res.json({ success: true, message: 'HR status removed successfully' });
+  });
+};
+

@@ -172,7 +172,7 @@ router.post('/send-mail', async (req, res) => {
                     from: `"ASGROUP Digital Private Limited" <${fromEmail}>`,
                     to: recipientEmail,
                     subject: `Payslip for ${employeeName}`,
-                    text: `Dear ${employeeName},\n\nPlease find attached your payslip for the requested period.\n\nBest regards,\nAS GROUP DIGITAL PVT LTD\nHR Department`,
+                    text: `Dear ${employeeName},\n\nPlease find attached your payslip for the requested period.\n\nBest regards,\nASGROUP DIGITAL PVT LTD\nHR Department`,
                     attachments: [
                         {
                             filename: fileName,
@@ -254,7 +254,7 @@ router.post('/send-mail', async (req, res) => {
         doc.fontSize(13).font('Helvetica-Bold').text(`NET SALARY: Rs. ${net_salary || 0}`).moveDown(1);
         
         doc.moveDown(1.5);
-        doc.fillColor('#94a3b8').fontSize(9).font('Helvetica-Oblique').text('This is a computer-generated document from AS GROUP DIGITAL PVT LTD and does not require a signature.', 50);
+        doc.fillColor('#94a3b8').fontSize(9).font('Helvetica-Oblique').text('This is a computer-generated document from ASGROUP DIGITAL PVT LTD and does not require a signature.', 50);
         doc.end();
 
     } catch (err) {

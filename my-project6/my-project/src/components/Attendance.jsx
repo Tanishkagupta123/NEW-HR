@@ -382,6 +382,55 @@ export default function Attendance() {
     .filter(e => (e.name || '').toLowerCase().includes(searchTerm.trim().toLowerCase()) || (e.employee_code || '').toLowerCase().includes(searchTerm.trim().toLowerCase()))
     .filter(e => !selectedEmployeeId || String(e.id) === String(selectedEmployeeId));
 
+    const exportToCSV = () => {
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    if (selectedEmployeeId && selectedEmp) {
+      csvContent += "Date,Day,Status,Check-In,Check-Out,Work Hours,Penalty/Fine\n";
+      displayedSingleRecords.forEach(rec => {
+        const d = formatLocalDate(rec.date);
+        const day = getDayName(rec.date);
+        const status = getAttendanceLabel(rec);
+        const st = (rec.status || rec.attendance_status || status).replace('_', ' ').toUpperCase();
+        const ci = rec.checkIn || rec.check_in || '--';
+        const co = rec.checkOut || rec.check_out || '--';
+        const wh = (ci !== '--' && co !== '--' && ci && co) ? calculateWorkHours(ci, co, rec.date) : '--';
+        const ded = computeDeduction(selectedEmp, rec);
+        const penalty = ded.amount > 0 ? "Rs. " + ded.amount : 'None';
+        
+        csvContent += `"${d}","${day}","${st}","${ci}","${co}","${wh}","${penalty}"\n`;
+      });
+    } else {
+      csvContent += "Emp Code,Name,Department,Status,Check-In,Check-Out,Work Hours,Penalty/Fine\n";
+      filteredEmployees.forEach(emp => {
+        const rec = getEmployeeRecord(emp);
+        const code = emp.employee_code || "EMP-" + emp.id;
+        const name = emp.name || '--';
+        const dept = emp.department || '--';
+        const status = getAttendanceLabel(rec);
+        const st = (rec.status || rec.attendance_status || status).replace('_', ' ').toUpperCase();
+        const ci = rec.checkIn || rec.check_in || '--';
+        const co = rec.checkOut || rec.check_out || '--';
+        const wh = (ci !== '--' && co !== '--' && ci && co) ? calculateWorkHours(ci, co, filterDate) : '--';
+        const ded = computeDeduction(emp, rec);
+        const penalty = ded.amount > 0 ? "Rs. " + ded.amount : 'None';
+        
+        csvContent += `"${code}","${name}","${dept}","${st}","${ci}","${co}","${wh}","${penalty}"\n`;
+      });
+    }
+    
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    const fileName = selectedEmp 
+      ? "Attendance_" + selectedEmp.name.replace(/\s+/g, '_') + "_" + monthNames[selectedMonth] + "_" + selectedYear + ".csv"
+      : "Attendance_All_" + filterDate + ".csv";
+    link.setAttribute("download", fileName);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const summary = filteredEmployees.reduce((s, emp) => {
     const rec = getEmployeeRecord(emp);
     const st = (rec.status || rec.attendance_status || '').toString().toUpperCase();
@@ -411,6 +460,15 @@ export default function Attendance() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
+              <button
+                onClick={exportToCSV}
+                className="flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition active:scale-95 whitespace-nowrap"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                Export CSV
+              </button>
             {isAdmin && (
               <button
                 onClick={() => setShowMachineSettings(v => !v)}
@@ -812,7 +870,7 @@ export default function Attendance() {
 
         {/* ── ATTENDANCE DATA TABLE ── */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-x-auto block">
             <table className="w-full min-w-[1000px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -1087,4 +1145,6 @@ export default function Attendance() {
     </div>
   );
 }
+
+
 

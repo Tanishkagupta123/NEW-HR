@@ -34,6 +34,10 @@ router.post('/upload', upload.single('profile_pic'), (req, res) => {
 	res.json({ success: true, filename: req.file.filename, url: publicUrl });
 });
 
+router.get('/hrs/list', ctrl.listHRs);
+router.post('/hrs/set-primary', ctrl.setPrimaryHR);
+router.post('/hrs/remove', ctrl.removeHRStatus);
+
 router.get('/', ctrl.list);
 router.post('/', uploadFields, ctrl.create);
 router.get('/:id', ctrl.get);

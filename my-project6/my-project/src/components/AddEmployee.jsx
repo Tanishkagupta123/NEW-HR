@@ -8,8 +8,12 @@ export default function AddEmployee() {
   const [errors, setErrors] = useState({});
 
   const updateField = (field, value) => {
-    setEmployee({...employee, [field]: value});
-    if (errors[field]) setErrors({...errors, [field]: ''});
+    const nextState = { ...employee, [field]: value };
+    if (field === 'department' && (value === 'HR' || value.toLowerCase() === 'human resources')) {
+      nextState.designation = 'HR Department';
+    }
+    setEmployee(nextState);
+    if (errors[field]) setErrors({ ...errors, [field]: '' });
   };
 
   const handleFileChange = (e) => {

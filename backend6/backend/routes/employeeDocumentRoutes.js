@@ -228,13 +228,13 @@ function generateLetterPDF(type, fields, notes) {
         }
 
         // Top Right Header Details
-        doc.font('Helvetica-Bold').fontSize(16).fillColor('#1E0C42').text('PAYMENT RECEIPT', 310, 34, { align: 'right', width: 248 });
+        doc.font('Helvetica-Bold').fontSize(16).fillColor('#1E0C42').text('PAYMENT RECEIPT', 310, 49, { align: 'right', width: 248 });
 
-        doc.font('Helvetica').fontSize(9).fillColor('#64748B').text('Receipt No', 400, 58);
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E0C42').text(`: ASG/REC/${value(fields, 'receiptNo') || '108'}`, 455, 58);
+        doc.font('Helvetica').fontSize(9).fillColor('#64748B').text('Receipt No', 400, 73);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E0C42').text(`: ASG/REC/${value(fields, 'receiptNo') || '108'}`, 455, 73);
 
-        doc.font('Helvetica').fontSize(9).fillColor('#64748B').text('Date', 400, 74);
-        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E0C42').text(`: ${value(fields, 'receiptDate') || new Date().toLocaleDateString('en-GB')}`, 455, 74);
+        doc.font('Helvetica').fontSize(9).fillColor('#64748B').text('Date', 400, 89);
+        doc.font('Helvetica-Bold').fontSize(9).fillColor('#1E0C42').text(`: ${value(fields, 'receiptDate') || new Date().toLocaleDateString('en-GB')}`, 455, 89);
 
         // Purple Divider Bar - below logo natural height
         doc.save();
@@ -349,41 +349,11 @@ function generateLetterPDF(type, fields, notes) {
         // Center: Authorized Signature Title
         doc.font('Helvetica').fontSize(9).fillColor('#64748B').text('Authorised Signature', 260, signTop + 4);
 
-        // REAL HANDWRITTEN CURSIVE "AS Group" SIGNATURE VECTOR (Royal Blue Ink #1D4ED8)
-        doc.save();
-        doc.strokeColor('#1D4ED8').lineWidth(2.2);
-
-        // 'A' letter in cursive
-        doc.moveTo(265, signTop + 42)
-           .bezierCurveTo(270, signTop + 18, 276, signTop + 16, 280, signTop + 39);
-        doc.moveTo(270, signTop + 29)
-           .lineTo(285, signTop + 31);
-
-        // 'S' letter in cursive
-        doc.moveTo(288, signTop + 36)
-           .bezierCurveTo(292, signTop + 22, 302, signTop + 24, 296, signTop + 32)
-           .bezierCurveTo(290, signTop + 40, 304, signTop + 42, 308, signTop + 30);
-
-        // Space / Dot
-        doc.moveTo(312, signTop + 38).lineTo(314, signTop + 38);
-
-        // 'G' letter in cursive
-        doc.moveTo(322, signTop + 32)
-           .bezierCurveTo(318, signTop + 24, 328, signTop + 22, 326, signTop + 30)
-           .lineTo(326, signTop + 46)
-           .bezierCurveTo(326, signTop + 52, 318, signTop + 50, 322, signTop + 40);
-
-        // 'r' 'o' 'u' 'p' cursive flow
-        doc.moveTo(326, signTop + 34)
-           .bezierCurveTo(330, signTop + 28, 334, signTop + 30, 336, signTop + 36) // r
-           .bezierCurveTo(340, signTop + 30, 346, signTop + 30, 344, signTop + 36) // o
-           .bezierCurveTo(348, signTop + 30, 354, signTop + 30, 352, signTop + 36) // u
-           .bezierCurveTo(356, signTop + 30, 362, signTop + 24, 360, signTop + 46); // p
-
-        // Underline Swoop Flourish
-        doc.strokeColor('#1E40AF').lineWidth(1.5);
-        doc.moveTo(260, signTop + 46)
-           .bezierCurveTo(290, signTop + 50, 330, signTop + 48, 368, signTop + 42);
+        // REAL HANDWRITTEN CURSIVE "AS Group" SIGNATURE IMAGE
+        const asgroupSignaturePath = path.join(__dirname, '../assets/asgroup_signature_transparent.png');
+        if (fs.existsSync(asgroupSignaturePath)) {
+          doc.image(asgroupSignaturePath, 260, signTop + 14, { width: 100 });
+        }
         doc.restore();
 
         doc.font('Helvetica-Bold').fontSize(10).fillColor('#1E0C42').text('AS GROUP DIGITAL PVT LTD', 260, signTop + 62);
@@ -1065,7 +1035,7 @@ function generateLetterPDF(type, fields, notes) {
         const rawName = value(fields, 'employeeName') || 'Kaushal Jangid';
         let salutation = value(fields, 'salutation') || 'Mr.';
         let employeeName = rawName;
-        if (/^(Mr\.|Ms\.|Mrs\.|Dr\.)/i.test(rawName)) {
+        if (/^(Mr|Ms|Mrs|Miss)\.?\s/i.test(rawName)) {
           const parts = rawName.split(' ');
           salutation = parts[0];
           employeeName = parts.slice(1).join(' ');
@@ -1087,7 +1057,7 @@ function generateLetterPDF(type, fields, notes) {
         const letterDateRaw = value(fields, 'letterDate') || new Date().toISOString().slice(0, 10);
         const currentDateFormatted = formatDate(letterDateRaw, '16 JUNE 2026').toUpperCase();
 
-        const pronounCap = salutation.toLowerCase().includes('ms') || salutation.toLowerCase().includes('mrs') ? 'She' : 'He';
+        const pronounCap = salutation.toLowerCase().includes('ms') || salutation.toLowerCase().includes('mrs') || salutation.toLowerCase().includes('miss') ? 'She' : 'He';
         const possessivePronoun = pronounCap === 'She' ? 'her' : 'his';
         const objectivePronoun = pronounCap === 'She' ? 'her' : 'him';
 
@@ -1195,7 +1165,7 @@ function generateLetterPDF(type, fields, notes) {
 
         // Paragraph 2
         const p2Runs = [
-          { text: 'During his tenure, ', font: 'Helvetica', color: '#222222' },
+          { text: `During ${possessivePronoun} tenure, `, font: 'Helvetica', color: '#222222' },
           { text: `${salutation} ${employeeName} `, font: 'Helvetica-Bold', color: '#111827' },
           { text: `was responsible for developing, testing, and maintaining web applications and software solutions. ${pronounCap} contributed to various projects with dedication and worked collaboratively with the team to deliver quality results.`, font: 'Helvetica', color: '#222222' }
         ];
@@ -1211,7 +1181,7 @@ function generateLetterPDF(type, fields, notes) {
 
         // Paragraph 4
         const p4Runs = [
-          { text: `We appreciate ${possessivePronoun} contributions to the organization and wish ${objectivePronoun} all the best for his future endeavors.`, font: 'Helvetica', color: '#222222' }
+          { text: `We appreciate ${possessivePronoun} contributions to the organization and wish ${objectivePronoun} all the best for ${possessivePronoun} future endeavors.`, font: 'Helvetica', color: '#222222' }
         ];
 
         curY = drawRichParagraph(doc, p4Runs, 50, curY, 495, 9.5, 5) + 18;
@@ -1604,7 +1574,7 @@ router.post('/send-letter', async (req, res) => {
       const employeeName = fields.employeeName || recipientName;
       emailHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 650px; margin: 0 auto; padding: 24px; color: #111827;">
-          <p style="font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;"><strong>Dear Mr./Ms. ${employeeName},</strong></p>
+          <p style="font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;"><strong>Dear ${employeeName},</strong></p>
           <p style="font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;">Greetings from AS Group Digital Pvt. Ltd.</p>
           <p style="font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;">We would like to express our sincere appreciation for your valuable contributions and dedicated service during your tenure with our organization.</p>
           <p style="font-size: 15px; line-height: 1.7; margin: 0 0 16px 0;">Please find attached your <strong>Experience Letter</strong> for your records and future reference. Your hard work, commitment, and professionalism have been greatly appreciated, and we are grateful for the efforts you have made towards the growth and success of the company.</p>
@@ -1781,3 +1751,5 @@ router.post('/send-notice-to-hr', async (req, res) => {
 });
 
 module.exports = router;
+
+

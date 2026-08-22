@@ -2,7 +2,7 @@ import { API_BASE_URL } from '../config/api';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import logo from '../assets/as group logo.webp';
+import logo from '../assets/ASGROUP-logo.webp';
 
 // Clean SVG Icons
 const icons = {
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
             <Link to="/admin" className="flex items-center gap-3.5" onClick={() => setIsSidebarOpen(false)}>
               <img src={logo} alt="Logo" className="w-12 h-12 object-contain rounded-xl shadow-sm border border-slate-100" />
               <div>
-                <h1 className="font-extrabold text-xl text-violet-950 tracking-tight leading-none">AS GROUP DIGITAL PVT LTD</h1>
+                <h1 className="font-extrabold text-xl text-violet-950 tracking-tight leading-none">ASGROUP DIGITAL PVT LTD</h1>
                 <span className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Admin Panel</span>
               </div>
             </Link>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      <main className="flex-1 min-h-screen w-full overflow-x-hidden overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 md:ml-72 lg:px-6 lg:py-6 xl:px-8 xl:py-8">
+      <main className="flex-1 min-h-screen w-full min-w-0 overflow-x-hidden overflow-y-auto px-3 py-3 sm:px-4 sm:py-4 md:ml-72 lg:px-6 lg:py-6 xl:px-8 xl:py-8">
         <div className="mb-3 flex items-center justify-between gap-3 border-b border-slate-200 bg-white px-4 py-3 md:hidden">
           <button type="button" aria-label="Open menu" onClick={() => setIsSidebarOpen(true)} className="inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-50">
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -272,9 +272,9 @@ export default function AdminDashboard() {
             </svg>
           </button>
           <div className="flex items-center gap-3">
-            <img src={logo} alt="AS GROUP DIGITAL PVT LTD" className="h-10 w-10 rounded-xl border border-slate-200 object-contain" />
+            <img src={logo} alt="ASGROUP DIGITAL PVT LTD" className="h-10 w-10 rounded-xl border border-slate-200 object-contain" />
             <div>
-              <p className="text-sm font-bold text-slate-900">AS GROUP DIGITAL PVT LTD</p>
+              <p className="text-sm font-bold text-slate-900">ASGROUP DIGITAL PVT LTD</p>
               <p className="text-xs text-slate-500">Admin Panel</p>
             </div>
           </div>
@@ -311,3 +311,4 @@ export default function AdminDashboard() {
     </div>
   );
 }
+

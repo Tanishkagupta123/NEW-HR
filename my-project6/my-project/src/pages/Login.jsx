@@ -54,8 +54,8 @@ export default function Login() {
       <div className="w-full max-w-md rounded-[28px] border border-white/20 bg-white/10 p-6 shadow-2xl backdrop-blur-xl sm:rounded-[36px] sm:p-8 md:max-w-lg md:p-10">
         
         <div className="mb-6 text-center sm:mb-8">
-          <img src="/src/assets/as group logo.webp" className="mx-auto h-16 w-16 rounded-full border-2 border-white/30 object-contain sm:h-20 sm:w-20" />
-          <h1 className="mt-4 text-2xl font-extrabold tracking-wide text-white sm:text-3xl">AS GROUP DIGITAL PVT LTD</h1>
+          <img src="/src/assets/ASGROUP-logo.webp" className="mx-auto h-16 w-16 rounded-full border-2 border-white/30 object-contain sm:h-20 sm:w-20" />
+          <h1 className="mt-4 text-2xl font-extrabold tracking-wide text-white sm:text-3xl">ASGROUP DIGITAL PVT LTD</h1>
           <p className="font-medium text-white/70">Secure Sign-In</p>
         </div>
 

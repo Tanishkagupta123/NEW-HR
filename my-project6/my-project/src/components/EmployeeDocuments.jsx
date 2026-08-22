@@ -1,8 +1,8 @@
 import { API_BASE_URL } from '../config/api';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
-import logo from '../assets/as group logo.webp';
+import logo from '../assets/ASGROUP-logo.webp';
 
 const documents = [
   {
@@ -121,7 +121,7 @@ const documentForms = {
   experience: {
     subtitle: 'Current ya former employee ke liye Experience Letter create karein.',
     fields: [
-      { label: 'Salutation', key: 'salutation', placeholder: 'Mr. / Ms. / Mrs.' },
+      { label: 'Salutation', key: 'salutation', type: 'select', options: ['Mr.', 'Ms.', 'Mrs.', 'Miss'] },
       { label: 'Employee Name', key: 'employeeName', placeholder: 'e.g. Kaushal Jangid' },
       { label: 'Email Address', key: 'emailAddress', type: 'email' },
       { label: 'Designation', key: 'designation', placeholder: 'e.g. Full Stack Developer' },
@@ -165,7 +165,7 @@ const documentForms = {
       { label: 'Advance Received (₹)', key: 'advanceReceived', placeholder: 'e.g. 25000' },
       { label: 'Due Payment (₹)', key: 'duePayment', placeholder: 'e.g. 25000' },
       { label: 'Amount in Words', key: 'amountInWords', placeholder: 'e.g. Twenty Five Thousand Rupees Only' },
-      { label: 'Payment Mode', key: 'paymentMode', placeholder: 'e.g. Bank Transfer / UPI / Cash' },
+      { label: 'Payment Mode', key: 'paymentMode', type: 'select', options: ['Bank Transfer', 'Online', 'Cash', 'Cheque'] },
       { label: 'Transaction / Ref ID', key: 'transactionId', placeholder: 'e.g. TXN987654321' }
     ],
     preview: [
@@ -191,6 +191,24 @@ export function EmployeeDocumentPage({ type }) {
   const [lastFileUrl, setLastFileUrl] = useState(null);
   const [whatsappShareUrl, setWhatsappShareUrl] = useState(null);
 
+  const convertNumberToWords = (amount) => {
+    const num = parseInt(amount, 10);
+    if (isNaN(num) || num === 0) return 'Zero Rupees Only';
+    const a = ['','One ','Two ','Three ','Four ', 'Five ','Six ','Seven ','Eight ','Nine ','Ten ','Eleven ','Twelve ','Thirteen ','Fourteen ','Fifteen ','Sixteen ','Seventeen ','Eighteen ','Nineteen '];
+    const b = ['', '', 'Twenty','Thirty','Forty','Fifty', 'Sixty','Seventy','Eighty','Ninety'];
+    let strAmount = num.toString();
+    if (strAmount.length > 9) return 'Amount too large';
+    let n = ('000000000' + strAmount).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return '';
+    let str = '';
+    str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+    str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+    str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+    str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+    str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+    return 'Rupees ' + str.trim() + ' Only';
+  };
+
   const handleChange = (key, value) => {
     setFields((currentFields) => {
       const updated = { ...currentFields, [key]: value };
@@ -200,6 +218,13 @@ export function EmployeeDocumentPage({ type }) {
         const adv = parseFloat((key === 'advanceReceived' ? value : updated.advanceReceived) || 0);
         if (!isNaN(cost) && !isNaN(adv)) {
           updated.duePayment = (cost - adv).toString();
+        }
+        
+        const amt = updated.totalProjectCost;
+        if (amt && !isNaN(amt)) {
+          updated.amountInWords = convertNumberToWords(amt);
+        } else {
+          updated.amountInWords = '';
         }
       }
       return updated;
@@ -450,13 +475,26 @@ export function EmployeeDocumentPage({ type }) {
               {form.fields.map((field) => (
                 <label key={field.key} className="block">
                   <span className="text-sm font-semibold text-slate-700">{field.label}</span>
-                  <input
-                    type={field.type || 'text'}
-                    value={fields[field.key] || ''}
-                    onChange={(event) => handleChange(field.key, event.target.value)}
-                    placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                    className={`mt-2 w-full rounded-xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-4 focus:ring-violet-100 ${fieldErrors[field.key] ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-violet-500'}`}
-                  />
+                  {field.type === 'select' ? (
+                    <select
+                      value={fields[field.key] || ''}
+                      onChange={(event) => handleChange(field.key, event.target.value)}
+                      className={`mt-2 w-full rounded-xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-4 focus:ring-violet-100 ${fieldErrors[field.key] ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-violet-500'}`}
+                    >
+                      <option value="" disabled>Select {field.label.toLowerCase()}</option>
+                      {field.options.map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type || 'text'}
+                      value={fields[field.key] || ''}
+                      onChange={(event) => handleChange(field.key, event.target.value)}
+                      placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                      className={`mt-2 w-full rounded-xl border px-4 py-3 text-sm text-slate-900 outline-none transition focus:ring-4 focus:ring-violet-100 ${fieldErrors[field.key] ? 'border-red-300 focus:border-red-400' : 'border-slate-200 focus:border-violet-500'}`}
+                    />
+                  )}
                   {fieldErrors[field.key] && (
                     <p className="mt-2 text-sm text-red-600">{fieldErrors[field.key]}</p>
                   )}
@@ -522,6 +560,90 @@ export function EmployeeDocumentPage({ type }) {
   );
 }
 
+function HRSignatorySettings() {
+  const [hrList, setHrList] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchHRs();
+  }, []);
+
+  const fetchHRs = async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/employees/hrs/list`);
+      setHrList(response.data);
+    } catch (err) {
+      console.error('Failed to fetch HRs', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSetPrimary = async (id) => {
+    try {
+      await axios.post(`${API_BASE_URL}/employees/hrs/set-primary`, { id });
+      fetchHRs();
+    } catch (err) {
+      console.error('Failed to set primary', err);
+    }
+  };
+
+  const handleDeleteHR = async (id) => {
+    if (!window.confirm("Are you sure you want to remove this employee from the HR list? (They will still remain in All Employees)")) return;
+    try {
+      await axios.post(`${API_BASE_URL}/employees/hrs/remove`, { id });
+      fetchHRs();
+    } catch (err) {
+      console.error('Failed to remove HR status', err);
+      alert('Failed to remove HR');
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="mb-8 rounded-2xl border border-violet-200 bg-violet-50 p-6 shadow-sm">
+      <h2 className="mb-4 text-lg font-bold text-violet-900">Authorized Signatory (Lead HR) Settings</h2>
+      <p className="mb-4 text-sm text-violet-700">Select the HR whose name will appear on all documents and emails.</p>
+      
+      {hrList.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-violet-300 bg-white/50 p-6 text-center">
+          <p className="text-sm font-semibold text-violet-600">No HR Employees Found!</p>
+          <p className="mt-1 text-xs text-slate-500">Go to All Employees and set someone's department or position to HR first.</p>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-4">
+          {hrList.map((hr) => (
+            <div key={hr.id} className={`flex items-center gap-3 rounded-xl border p-4 transition relative group ${hr.is_primary_hr ? 'border-violet-500 bg-white ring-2 ring-violet-200' : 'border-violet-200 bg-white/60 hover:bg-white'}`}>
+              <button 
+                onClick={() => handleDeleteHR(hr.id)}
+                className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition shadow-sm hover:bg-red-600 hover:text-white"
+                title="Delete Employee"
+              >
+                &times;
+              </button>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-100 font-bold text-violet-700">
+                {hr.name.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-bold text-slate-800">{hr.name}</p>
+                <p className="text-xs text-slate-500">{hr.position || hr.role_position || 'HR'}</p>
+              </div>
+              <button
+                onClick={() => handleSetPrimary(hr.id)}
+                disabled={hr.is_primary_hr}
+                className={`ml-4 shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold transition ${hr.is_primary_hr ? 'bg-violet-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
+              >
+                {hr.is_primary_hr ? 'Active Lead' : 'Set as Lead'}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function EmployeeDocuments() {
   return (
     <div className="min-h-screen bg-slate-50 p-4 sm:p-6 lg:p-8">
@@ -530,6 +652,8 @@ export default function EmployeeDocuments() {
           <p className="text-sm font-bold uppercase tracking-wider text-violet-600">Admin Panel</p>
           <h1 className="mt-2 text-3xl font-black text-violet-950">Employee & Client Documents</h1>
         </div>
+
+        <HRSignatorySettings />
 
         <div className="grid gap-4 md:grid-cols-3">
           {documents.map((document) => (
@@ -547,3 +671,8 @@ export default function EmployeeDocuments() {
     </div>
   );
 }
+
+
+
+
+

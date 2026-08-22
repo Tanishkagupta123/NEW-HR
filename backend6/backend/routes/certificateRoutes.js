@@ -71,7 +71,7 @@ router.get('/', (req, res) => {
 });
 
 // Generate Certificate PDF (Returns in-memory Buffer + optional file save)
-const generateCertificatePDF = (recipientName, certificateType, description, companyName = 'AS GROUP DIGITAL PVT LTD', issuedDateStr = null, certId = null) => {
+const generateCertificatePDF = (recipientName, certificateType, description, companyName = 'ASGROUP DIGITAL PVT LTD', issuedDateStr = null, certId = null) => {
   return new Promise((resolve, reject) => {
     try {
       const doc = new PDFDocument({
@@ -161,7 +161,7 @@ const generateCertificatePDF = (recipientName, certificateType, description, com
       const sealY = 445;
       doc.circle(sealX, sealY, 25).lineWidth(1.3).strokeColor(violet).stroke();
       doc.circle(sealX, sealY, 19).lineWidth(0.6).strokeColor(gold).stroke();
-      doc.font('Helvetica-Bold').fontSize(6.5).fillColor(violet).text('AS GROUP DIGITAL PVT LTD', sealX - 20, sealY - 7, { width: 40, align: 'center' });
+      doc.font('Helvetica-Bold').fontSize(6.5).fillColor(violet).text('ASGROUP DIGITAL PVT LTD', sealX - 20, sealY - 7, { width: 40, align: 'center' });
       doc.font('Helvetica').fontSize(5.5).fillColor(gold).text('EXCELLENCE', sealX - 20, sealY + 3, { width: 40, align: 'center' });
 
       // Official stamp
@@ -201,7 +201,7 @@ router.post('/generate-certificate', async (req, res) => {
     const certId = `AS-${issuedDate.getFullYear()}-${Date.now().toString().slice(-6)}`;
 
     // Generate PDF in memory Buffer
-    const { pdfBuffer, filepath } = await generateCertificatePDF(recipientName, certificateType, description, 'AS GROUP DIGITAL PVT LTD', issuedDateStr, certId);
+    const { pdfBuffer, filepath } = await generateCertificatePDF(recipientName, certificateType, description, 'ASGROUP DIGITAL PVT LTD', issuedDateStr, certId);
 
     const fromEmail = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'hr@asgroup.net.in';
 
@@ -223,14 +223,14 @@ router.post('/generate-certificate', async (req, res) => {
     const mailOptions = {
       from: `"ASGROUP Digital Private Limited" <${fromEmail}>`,
       to: recipientEmail,
-      subject: `Your AS GROUP DIGITAL PVT LTD Certificate of Achievement`,
+      subject: `Your ASGROUP DIGITAL PVT LTD Certificate of Achievement`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 700px; margin: 0 auto; padding: 20px; background: #f5f7fb; border-radius: 8px;">
           <div style="background: #ffffff; padding: 28px; border-radius: 8px; text-align: left; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
             <div style="display:flex; align-items:center; gap:12px;">
-              ${fs.existsSync(frontendLogoPath) ? '<img src="cid:asgrouplogo" alt="AS GROUP DIGITAL PVT LTD" style="width:56px;height:56px;border-radius:12px;object-fit:contain;background:#ffffff;border:1px solid #e5e7eb;" />' : ''}
+              ${fs.existsSync(frontendLogoPath) ? '<img src="cid:asgrouplogo" alt="ASGROUP DIGITAL PVT LTD" style="width:56px;height:56px;border-radius:12px;object-fit:contain;background:#ffffff;border:1px solid #e5e7eb;" />' : ''}
               <div>
-                <div style="font-weight:700;color:#1e1b4b;font-size:18px">AS GROUP DIGITAL PVT LTD</div>
+                <div style="font-weight:700;color:#1e1b4b;font-size:18px">ASGROUP DIGITAL PVT LTD</div>
                 <div style="font-size:12px;color:#6b7280">Human Resources Department</div>
               </div>
             </div>

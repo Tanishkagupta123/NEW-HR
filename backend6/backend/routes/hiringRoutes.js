@@ -42,10 +42,10 @@ const sendHiringStatusEmail = async ({ name, email, position, status, interview_
 
   const formattedDate = interview_date ? formatInterviewDate(interview_date) : null;
   const subject = status === 'Selected'
-    ? 'AS GROUP DIGITAL PVT LTD HR | You are selected for interview'
+    ? 'ASGROUP DIGITAL PVT LTD HR | You are selected for interview'
     : status === 'Pending'
-      ? 'AS GROUP DIGITAL PVT LTD HR | Application Received'
-      : 'AS GROUP DIGITAL PVT LTD HR | Interview Scheduled';
+      ? 'ASGROUP DIGITAL PVT LTD HR | Application Received'
+      : 'ASGROUP DIGITAL PVT LTD HR | Interview Scheduled';
 
   const headerText = status === 'Selected'
     ? 'You are selected for interview!'
@@ -54,10 +54,10 @@ const sendHiringStatusEmail = async ({ name, email, position, status, interview_
       : 'Your interview is scheduled';
 
   const messageText = status === 'Selected'
-    ? `Congratulations! You have been selected for the position of <strong>${position || 'the role'}</strong> at AS GROUP DIGITAL PVT LTD.`
+    ? `Congratulations! You have been selected for the position of <strong>${position || 'the role'}</strong> at ASGROUP DIGITAL PVT LTD.`
     : status === 'Pending'
-      ? `Thank you for applying for the position of <strong>${position || 'the role'}</strong> at AS GROUP DIGITAL PVT LTD. We have received your application and our HR team will review it.`
-      : `Your interview for the position of <strong>${position || 'the role'}</strong> at AS GROUP DIGITAL PVT LTD has been scheduled.`;
+      ? `Thank you for applying for the position of <strong>${position || 'the role'}</strong> at ASGROUP DIGITAL PVT LTD. We have received your application and our HR team will review it.`
+      : `Your interview for the position of <strong>${position || 'the role'}</strong> at ASGROUP DIGITAL PVT LTD has been scheduled.`;
 
   const interviewInfo = formattedDate ? `
           <p style="font-size: 15px; margin: 0 0 16px;">
@@ -69,7 +69,7 @@ const sendHiringStatusEmail = async ({ name, email, position, status, interview_
     <div style="font-family: Arial, sans-serif; background: #f4f5fb; padding: 20px;">
       <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);">
         <div style="background: linear-gradient(135deg, #5b21b6, #7c3aed); padding: 30px; color: #ffffff; text-align: center;">
-          <h1 style="margin: 0; font-size: 24px;">AS GROUP DIGITAL PVT LTD</h1>
+          <h1 style="margin: 0; font-size: 24px;">ASGROUP DIGITAL PVT LTD</h1>
           <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.88;">Human Resources Department</p>
         </div>
         <div style="padding: 30px; color: #1f2937;">
@@ -84,10 +84,10 @@ const sendHiringStatusEmail = async ({ name, email, position, status, interview_
           </p>
           <div style="background: #eef2ff; border-left: 4px solid #7c3aed; padding: 16px; border-radius: 10px;">
             <p style="margin: 0; font-size: 14px; color: #4b5563;">
-              This message is sent by AS GROUP DIGITAL PVT LTD HR.
+              This message is sent by ASGROUP DIGITAL PVT LTD HR.
             </p>
           </div>
-          <p style="font-size: 14px; margin: 24px 0 0; color: #6b7280;">Regards,<br/>AS GROUP DIGITAL PVT LTD HR Team</p>
+          <p style="font-size: 14px; margin: 24px 0 0; color: #6b7280;">Regards,<br/>ASGROUP DIGITAL PVT LTD HR Team</p>
         </div>
       </div>
     </div>
@@ -95,7 +95,7 @@ const sendHiringStatusEmail = async ({ name, email, position, status, interview_
 
   const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
   const mailOptions = {
-    from: `AS GROUP DIGITAL PVT LTD HR <${fromAddress}>`,
+    from: `ASGROUP DIGITAL PVT LTD HR <${fromAddress}>`,
     to: recipientEmail,
     cc: process.env.EMAIL_USER,
     replyTo: fromAddress,
